@@ -221,6 +221,8 @@ echo ""
 html='/var/www/html' # full installation path
 folder='nextcloud1'
 backup=$html/backup
+regex='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
+regexmail="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
 
 check
 clear
@@ -252,7 +254,16 @@ echo ""
   if [ "$key1" = "1" ]; then
   	echo -n "Enter url (with http:// or https://): "
 	read url1
-    [  -z "$url1" ] && domainstat="$check_miss" || domainstat="$check_ok"
+	
+	# Check for correct input
+	if [[ $url1 =~ $regex ]]; then
+		[  -z "$url1" ] && domainstat="$check_miss" || domainstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Enter a valid URL..."$reset
+		url1="http://example.com"
+        	sleep 3
+        	continue
+	fi
 
   elif [ "$key1" = "2" ]; then
 	echo -n "Enter name: "
@@ -262,12 +273,30 @@ echo ""
   elif [ "$key1" = "3" ]; then
 	echo -n "Enter html-directory (e.g. /var/www/html): "
 	read html
-	[  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
+	
+	# Check for correct input
+	if [[ -d $html ]]; then
+    [  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
+	else
+		printf $redbg"Wrong input format or choosen directory does not exist..."$reset
+		html='/'
+        	sleep 3
+        	continue
+	fi
 
   elif [ "$key1" = "4" ]; then
 	echo -n "Enter backup directory (e.g. /var/www/html/backup): "
 	read backup
-	[  -z "$backup" ] && backupstat="$check_miss" || backupstat="$check_ok"
+	
+	# Check for correct input
+	if [[ -d $backup ]]; then
+		[  -z "$backup" ] && backupstat="$check_miss" || backupstat="$check_ok"
+	else
+		printf $redbg"Wrong input format or choosen directory does not exist..."$reset
+		html='/'
+        	sleep 3
+        	continue
+	fi
 
   elif [ "$key1" = "5" ]; then
 	echo -n "Enter folder name: "
@@ -310,9 +339,9 @@ clear
 printf $green"$header"$reset
 echo ""
 echo ""
-   read -e -p "Do you want to setup SMTP (y/n)? " SMTP
+   read -e -p "Do you want to setup SMTP (y/n)? " smtp
 
-   if [ "$SMTP" == "y" ] || [ "$SMTP" == "Y" ]; then
+   if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
 
 #################################
 ######   SMTP-Setup Start   #####
@@ -351,12 +380,30 @@ echo ""
   elif [ "$key2" = "2" ]; then
 	echo -n "Enter SMTP-Host (e.g. yourdomain.com): "
 	read smtphost
-	[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
+	
+	# Check for correct input
+	if [[ $smtphost =~ $regex ]]; then
+		[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Enter a valid URL..."$reset
+		smtphost="yourdomain.com"
+        	sleep 3
+        	continue
+	fi
 
   elif [ "$key2" = "3" ]; then
 	echo -n "Enter SMTP-Port (default :587): "
 	read smtpport
-	[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
+	
+	# Check for correct input
+	if [[ "$smtpport" =~ ^[0-9]+$ ]]; then
+		[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Only numbers are supported..."$reset
+		smtpport='587'
+        	sleep 3
+        	continue
+	fi
 
   elif [ "$key2" = "4" ]; then
 	echo -n "Enter SMTP-Sendername (e.g. admin, info, etc): "
@@ -371,17 +418,44 @@ echo ""
   elif [ "$key2" = "6" ]; then
 	echo -n "Enter SMTP-Security (tls, ssl, none): "
 	read smtpsec
-	[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
+	
+	# Check for correct input
+	if [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; then
+		[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Type ssl, tls or none..."$reset
+		smtpsec='tls'
+        	sleep 3
+        	continue
+	fi
 
   elif [ "$key2" = "7" ]; then
 	echo -n "Is SMTP-Authentification required? (1 for yes - 0 for no): "
 	read smtpauthreq
-	[  -z "$smtpauthreq" ] && smauthreqstat="$check_miss" || smauthreqstat="$check_ok"
+	
+	# Check for correct input
+	if [ "$smtpauthreq" = "0" ] || [ "$smtpauthreq" = "1" ]; then
+		[  -z "$smtpauthreq" ] && smauthreqstat="$check_miss" || smauthreqstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Type 0 or 1..."$reset
+		smtpauthreq='1'
+        	sleep 3
+        	continue
+	fi
 
   elif [ "$key2" = "8" ]; then
 	echo -n "Set SMTP sender Domain (e.g. yourdomain.com): "
 	read smtpdomain
-	[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
+	
+	# Check for correct input
+	if [[ $smtpdomain =~ $regex ]]; then
+		[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Enter a valid URL..."$reset
+		smtpdomain="yourdomain.com"
+        	sleep 3
+        	continue
+	fi
 
   elif [ "$key2" = "s" ]; then
         if [ -z "$smtpauth" ] || [ -z "$smtphost" ] || [ -z "$smtpport" ] || [ -z "$smtpname" ] || [ -z "$smtppwd" ] || [ -z "$smtpsec" ] || [ -z "$smtpauthreq" ] || [ -z "$smtpdomain" ]; then
@@ -438,7 +512,16 @@ echo ""
   if [ "$key3" = "1" ]; then
   	echo -n "Enter your E-mail: "
 	read email
-    [  -z "$email" ] && emailstat="$check_miss" || emailstat="$check_ok"
+	
+	# Check for correct input
+	if [[ $email =~ $regexmail ]]; then
+		[  -z "$email" ] && emailstat="$check_miss" || emailstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Enter a valid email address..."$reset
+		email='mail@example.com'
+        	sleep 3
+        	continue
+	fi
 
   elif [ "$key3" = "2" ]; then
 	echo -n "Please enter desired admin username for Nextcloud: "
@@ -966,7 +1049,7 @@ shopt -u nocasematch
 
 sudo -u ${htuser} php $ncpath/occ user:setting $adminuser settings email "$email"
 
-if [ "$SMTP" == "y" ] || [ "$SMTP" == "Y" ]; then
+if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
 	sudo -u ${htuser} php $ncpath/occ config:system:set mail_from_address --value 'admin'
 	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpmode --value 'smtp'
 	sudo -u ${htuser} php $ncpath/occ config:system:set mail_domain --value "$smtpdomain"
