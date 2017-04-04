@@ -293,7 +293,7 @@ echo ""
 		[  -z "$backup" ] && backupstat="$check_miss" || backupstat="$check_ok"
 	else
 		printf $redbg"Wrong input format or choosen directory does not exist..."$reset
-		html='/'
+		backup='/'
         	sleep 3
         	continue
 	fi
