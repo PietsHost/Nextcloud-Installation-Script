@@ -136,7 +136,7 @@ fi
 	arch=$(uname -m)
 
 echo ""
-printf $yellow"Detected : $os $ver $arch"$reset
+printf $yellow"Detected : $os $ver $arch\n"$reset
 echo ""
 sleep 1
 
@@ -145,11 +145,11 @@ if [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ||
       "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) || 
 	  "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
     echo ""
-	printf $green"Very Good! Your OS is compatible."$reset
+	printf $green"Very Good! Your OS is compatible.\n"$reset
 	sleep 1
 else
 	echo ""
-    printf $red"Unfortunately, this OS is not supported by Piet's Host Install-script for Nextcloud."$reset
+    printf $red"Unfortunately, this OS is not supported by Piet's Host Install-script for Nextcloud.\n"$reset
     echo ""
 	sleep 2
 	exit 1
@@ -158,7 +158,7 @@ sleep 1
 
 echo ""
 echo ""
-printf $yellow"Installing dependencies..."$reset
+printf $yellow"Installing dependencies...\n"$reset
 
 {
 if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
@@ -261,8 +261,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Enter a valid URL..."$reset
 		url1="http://example.com"
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 
   elif [ "$key1" = "2" ]; then
@@ -280,8 +280,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format or choosen directory does not exist..."$reset
 		html='/'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 
   elif [ "$key1" = "4" ]; then
@@ -294,8 +294,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format or choosen directory does not exist..."$reset
 		backup='/'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 
   elif [ "$key1" = "5" ]; then
@@ -387,8 +387,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Enter a valid URL..."$reset
 		smtphost="yourdomain.com"
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 
   elif [ "$key2" = "3" ]; then
@@ -401,8 +401,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Only numbers are supported..."$reset
 		smtpport='587'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 
   elif [ "$key2" = "4" ]; then
@@ -425,8 +425,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Type ssl, tls or none..."$reset
 		smtpsec='tls'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 
   elif [ "$key2" = "7" ]; then
@@ -439,8 +439,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Type 0 or 1..."$reset
 		smtpauthreq='1'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 
   elif [ "$key2" = "8" ]; then
@@ -453,8 +453,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Enter a valid URL..."$reset
 		smtpdomain="yourdomain.com"
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 
   elif [ "$key2" = "s" ]; then
@@ -519,8 +519,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Enter a valid email address..."$reset
 		email='mail@example.com'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 
   elif [ "$key3" = "2" ]; then
@@ -600,8 +600,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Please type true/false..."$reset
 		displayname='true'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 	shopt -u nocasematch
 
@@ -616,8 +616,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Please type daily, beta, stable or production..."$reset
 		rlchannel='stable'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 	shopt -u nocasematch
 
@@ -632,8 +632,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Please type none or APCu..."$reset
 		memcache='none'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 	shopt -u nocasematch
 	
@@ -648,8 +648,8 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Please type true/false..."$reset
 		maintenance='false'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 	shopt -u nocasematch
 	
@@ -664,15 +664,15 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Please type true/false..."$reset
 		singleuser='false'
-        	sleep 3
-        	continue
+        sleep 3
+        continue
 	fi
 	shopt -u nocasematch
 	
   elif [ "$key3" = "s" ]; then
         if [ -z "$displayname" ] || [ -z "$rlchannel" ] || [ -z "$memcache" ] || [ -z "$maintenance" ] || [ -z "$singleuser" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
-        	sleep 3
+			sleep 3
         	continue
         else
         	echo "-----------------------------"
@@ -698,11 +698,11 @@ echo "Checking latest released version on the Nextcloud download server and if i
 wget -q -T 10 -t 2 $ncrepo/nextcloud-$ncversion.tar.bz2 > /dev/null
 if [ $? -eq 0 ]; then
 	echo ""
-    printf "\e[4;32mSUCCESS!"$reset"\n"
+    printf $ugreen"SUCCESS!\n"$reset
 	rm -f nextcloud-$ncversion.tar.bz2
 else
     echo ""
-    printf $lightred"Nextcloud $ncversion doesn't exist."$reset"\n"
+    printf $lightred"Nextcloud $ncversion doesn't exist.\n"$reset
     echo "Please check available versions here: $ncrepo"
     echo ""
     exit 1
@@ -713,7 +713,7 @@ if [ -z "$html" ] || [ -z "$backup" ] || [ -z "$ncpath" ] || [ -z "$ncname" ] ||
 then
 
 	echo ""
-	printf $redbg"One or more variables are undefined. Aborting..."$reset"\n"
+	printf $redbg"One or more variables are undefined. Aborting...\n"$reset
 	echo ""
 	sleep 1
 	exit 0
@@ -746,19 +746,19 @@ if [ -f "$ncpath/occ" ]; then
 	chmod +x $ncpath/occ
 	CURRENTVERSION=$(sudo -u $htuser php $ncpath/occ status | grep "versionstring" | awk '{print $3}')
 	echo ""
-    printf "Latest version is: \e[4;32m$ncversion\e[0m.\n"
+    printf "Latest version is: ${ugreen}$ncversion ${reset}\n"
 	echo ""
-    printf $redbg"Nextcloud is already installed..."$reset"\n"
+    printf $redbg"Nextcloud is already installed...\n"$reset
 	echo ""
-	echo "If your version isn't up to date make use of the ncupdate-script."
+	echo "If your version isn't up to date make use of the Piet's Host ncupdate-script."
 	echo ""
 	sleep 2
     exit 0
 else
 	echo ""
-    printf "Latest version is: ${ugreen}$ncversion${reset}.\n"
+    printf "Latest version is: ${ugreen}$ncversion${reset}\n"
 	echo ""
-    printf $green"No Nextcloud installation found! Installing continues..."$reset"\n"
+    printf $green"No Nextcloud installation found! Installing continues...\n"$reset
 	echo ""
 	sleep 2
 fi
@@ -771,15 +771,15 @@ wget -q -T 10 -t 2 $ncrepo/nextcloud-$ncversion.tar.bz2 -P $html
 # Check if download completed successfully
 if [ -f $html/nextcloud-$ncversion.tar.bz2 ]
 then
-    printf "Download of nextcloud-$ncversion.tar.bz2 ${green}successfull"$reset"\n"
+    printf "Download of nextcloud-$ncversion.tar.bz2 ${green}successfull\n"$reset
 	echo ""
 else
-    echo "Aborting,something went wrong with the download"
+    echo "Oh no! Something went wrong with the download"
 	exit 1
 fi
 
 # Extract files and move into right folder
-printf $yellow"Files are being extracted... "$reset"\n"
+printf $yellow"Files are being extracted... \n"$reset
 echo ""
 	mkdir -p "$ncpath"
 	pv -w 80 $html/nextcloud-$ncversion.tar.bz2 | tar xjf - -C $html
@@ -794,7 +794,7 @@ echo ""
 	sleep 1
 
 	echo ""
-	printf $green"Extract completed."$reset"\n"
+	printf $green"Extract completed.\n"$reset
 	echo ""
 	sleep 1
 
@@ -806,7 +806,7 @@ echo ""
 ##  PASSWORD-GEN  ##
 ####################
 
-	printf $yellow"Let's do some magic... Generating usernames and passwords.."$reset"\n"
+	printf $yellow"Let's do some magic... Generating usernames and passwords..\n"$reset
 	echo ""
 	sleep 1
 
@@ -862,7 +862,7 @@ if [ -z "$dbtype" ] || [ -z "$dbname" ] || [ -z "$dbuser" ] || [ -z "$dbpwd" ] |
 then
 
 	echo ""
-	printf "\e[41mOne or more variables are undefined. Aborting...\e[0m"
+	printf $redbg"One or more variables are undefined. Aborting..."$reset
 	echo ""
 	sleep 1
 	exit 0
@@ -881,14 +881,14 @@ sleep 1
 mysql -u root -p$database_root -e "GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'localhost' IDENTIFIED BY '$dbpwd'"
 sleep 1
 } &> /dev/null
-printf $green"Done! Continuing.."$reset"\n"
+printf $green"Done! Continuing..\n"$reset
 sleep 1
 
 ##################
 ##  AUTOCONFIG  ##
 ##################
 echo ""
-printf $yellow"Creating Autoconfig..."$reset"\n"
+printf $yellow"Creating Autoconfig...\n"$reset
 echo ""
 sleep 2
 
@@ -923,15 +923,15 @@ if [ -z "$ncpath" ] || [ -z "$rootuser" ] || [ -z "$htuser" ] || [ -z "$htgroup"
 then
 
 	echo ""
-	printf $redbg"One or more variables are undefined. Aborting..."$reset"\n"
+	printf $redbg"One or more variables are undefined. Aborting...\n"$reset
 	echo ""
 	sleep 1
 	exit 0
 else
-printf $green"Done!"$reset"\n"
+printf $green"Done!\n"$reset
 echo ""
 sleep 1
-printf $yellow"Setting correct permissions..."$reset"\n"
+printf $yellow"Setting correct permissions...\n"$reset
 echo ""
 sleep 1
 
@@ -989,21 +989,21 @@ fi
 EOF
 	chmod +x nextcloud_permissions.sh
 	./nextcloud_permissions.sh
-	printf $green"Setting permissions completed..."$reset"\n"
+	printf $green"Setting permissions completed...\n"$reset
 	echo ""
 	rm -f ./nextcloud_permissions.sh
 	sleep 2
 fi
 
 # Install Nextcloud via autoconfig.php
-printf $yellow"INDEXING..."$reset"\n"
+printf $yellow"INDEXING...\n"$reset
 url=$url1/$folder/index.php		# trigger for autoconfig.php
 curl $url
 echo ""
-printf $green"INDEXING COMPLETE"$reset"\n"
+printf $green"INDEXING COMPLETE\n"$reset
 echo ""
 sleep 1
-printf $green"Finishing setup..."$reset"\n"
+printf $green"Finishing setup...\n"$reset
 echo ""
 
 #################
@@ -1101,12 +1101,12 @@ echo " Database password	: $dbpwd"
 echo "   (theses passwords are saved in $pwdtxt/nextcloud_passwords.txt)"
 echo "###################################################################"
 echo ""
-printf $green"Navigate to $url and enjoy Nextcloud!"$reset"\n"
+printf $green"Navigate to $url and enjoy Nextcloud!\n"$reset
 
 	# Check for maintenance mode
 	if [[ "$maintenance" = "true" ]]; then
 		echo ""
-		printf $red"Your system is in maintenance mode! "$reset"\n"
+		printf $red"Your system is in maintenance mode! \n"$reset
 		echo ""
 		echo "To disable maintenance mode type:"
 		printf $green"sudo -u ${htuser} php $ncpath/occ maintenance:mode --off"$reset
