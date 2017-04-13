@@ -16,11 +16,12 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 ######   DEFAULT VAR START   #####
 ##################################
 
-database_root='P@s$w0rd!'
+#	Uncomment if you want to set the database root password (useful,
+#	if you want to install multiple instances of Nextcloud)
+#database_root='P@s$w0rd!'
 
 url1="http://example.com"
 ncname=nextcloud1
-
 dbhost=localhost
 dbtype=mysql
 htuser='apache'  	# Webserver-User (CentOS: apache, suseLinux: wwwrun, etc..)
@@ -80,7 +81,7 @@ function check(){
 [  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
 [  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
 [  -z "$backup" ] && backupstat="$check_miss" || backupstat="$check_ok"
-[  -z "$folder" ] && folderstat="$check_miss" || folderstat="$check_ok"
+[  "$folder" ] && folderstat="$check_ok"
 [  -z "$dbtype" ] && dbtypestat="$check_miss" || dbtypestat="$check_ok"
 [  -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
 [  -z "$email" ] && emailstat="$check_miss" || emailstat="$check_ok"
@@ -254,7 +255,7 @@ echo ""
   if [ "$key1" = "1" ]; then
   	echo -n "Enter url (with http:// or https://): "
 	read url1
-	
+
 	# Check for correct input
 	if [[ $url1 =~ $regex ]]; then
 		[  -z "$url1" ] && domainstat="$check_miss" || domainstat="$check_ok"
@@ -273,7 +274,7 @@ echo ""
   elif [ "$key1" = "3" ]; then
 	echo -n "Enter html-directory (e.g. /var/www/html): "
 	read html
-	
+
 	# Check for correct input
 	if [[ -d $html ]]; then
     [  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
@@ -299,9 +300,9 @@ echo ""
 	fi
 
   elif [ "$key1" = "5" ]; then
-	echo -n "Enter folder name: "
+	echo -n "Enter folder name (Leave empty, if you want to install to root directory): "
 	read folder
-	[  -z "$folder" ] && folderstat="$check_miss" || folderstat="$check_ok"
+	[  "$folder" ] && folderstat="$check_ok"
 
   elif [ "$key1" = "6" ]; then
 	echo -n "Enter Database-Type (e.g. mysql, sqlite, etc.): "
@@ -314,7 +315,7 @@ echo ""
 	[  -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
 
   elif [ "$key1" = "s" ]; then
-        if [ -z "$url1" ] || [ -z "$ncname" ] || [ -z "$html" ] || [ -z "$backup" ] || [ -z "$folder" ] || [ -z "$dbtype" ] || [ -z "$dbhost" ]; then
+        if [ -z "$url1" ] || [ -z "$ncname" ] || [ -z "$html" ] || [ -z "$backup" ] || [ -z "$dbtype" ] || [ -z "$dbhost" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
         	sleep 3
         	continue
@@ -380,7 +381,7 @@ echo ""
   elif [ "$key2" = "2" ]; then
 	echo -n "Enter SMTP-Host (e.g. yourdomain.com): "
 	read smtphost
-	
+
 	# Check for correct input
 	if [[ $smtphost =~ $regex ]]; then
 		[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
@@ -394,7 +395,7 @@ echo ""
   elif [ "$key2" = "3" ]; then
 	echo -n "Enter SMTP-Port (default :587): "
 	read smtpport
-	
+
 	# Check for correct input
 	if [[ "$smtpport" =~ ^[0-9]+$ ]]; then
 		[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
@@ -418,7 +419,7 @@ echo ""
   elif [ "$key2" = "6" ]; then
 	echo -n "Enter SMTP-Security (tls, ssl, none): "
 	read smtpsec
-	
+
 	# Check for correct input
 	if [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; then
 		[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
@@ -432,7 +433,7 @@ echo ""
   elif [ "$key2" = "7" ]; then
 	echo -n "Is SMTP-Authentification required? (1 for yes - 0 for no): "
 	read smtpauthreq
-	
+
 	# Check for correct input
 	if [ "$smtpauthreq" = "0" ] || [ "$smtpauthreq" = "1" ]; then
 		[  -z "$smtpauthreq" ] && smauthreqstat="$check_miss" || smauthreqstat="$check_ok"
@@ -446,7 +447,7 @@ echo ""
   elif [ "$key2" = "8" ]; then
 	echo -n "Set SMTP sender Domain (e.g. yourdomain.com): "
 	read smtpdomain
-	
+
 	# Check for correct input
 	if [[ $smtpdomain =~ $regex ]]; then
 		[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
@@ -512,7 +513,7 @@ echo ""
   if [ "$key3" = "1" ]; then
   	echo -n "Enter your E-mail: "
 	read email
-	
+
 	# Check for correct input
 	if [[ $email =~ $regexmail ]]; then
 		[  -z "$email" ] && emailstat="$check_miss" || emailstat="$check_ok"
@@ -592,7 +593,7 @@ echo ""
   if [ "$key3" = "1" ]; then
   	echo -n "Allow users to change display name? (true/false): "
 	read displayname
-	
+
 	# Check for correct input
 	shopt -s nocasematch
 	if [[ "$displayname" = "true" ]] || [[ "$displayname" = "false" ]]; then
@@ -608,7 +609,7 @@ echo ""
   elif [ "$key3" = "2" ]; then
 	echo -n "The channel that Nextcloud should use to look for updates (daily, beta, stable, production) "
 	read rlchannel
-	
+
 	# Check for correct input
 	shopt -s nocasematch
 	if [[ "$rlchannel" = "daily" ]] || [[ "$rlchannel" = "beta" ]] || [[ "$rlchannel" = "stable" ]] || [[ "$rlchannel" = "production" ]]; then
@@ -624,7 +625,7 @@ echo ""
   elif [ "$key3" = "3" ]; then
 	echo -n "Do you want to use memcache? (none, APCu): "
 	read memcache
-	
+
 	# Check for correct input
 	shopt -s nocasematch
 	if [[ "$memcache" = "none" ]] || [[ "$memcache" = "APCu" ]]; then
@@ -636,11 +637,11 @@ echo ""
         continue
 	fi
 	shopt -u nocasematch
-	
+
   elif [ "$key3" = "4" ]; then
 	echo -n "Do you want to enable maintenance mode? (true/false): "
 	read maintenance
-	
+
 	# Check for correct input
 	shopt -s nocasematch
 	if [[ "$maintenance" = "true" ]] || [[ "$maintenance" = "false" ]]; then
@@ -652,11 +653,11 @@ echo ""
         continue
 	fi
 	shopt -u nocasematch
-	
+
   elif [ "$key3" = "5" ]; then
 	echo -n "Do you want to enable single user mode? (true/false): "
 	read singleuser
-	
+
 	# Check for correct input
 	shopt -s nocasematch
 	if [[ "$singleuser" = "true" ]] || [[ "$singleuser" = "false" ]]; then
@@ -668,7 +669,7 @@ echo ""
         continue
 	fi
 	shopt -u nocasematch
-	
+
   elif [ "$key3" = "s" ]; then
         if [ -z "$displayname" ] || [ -z "$rlchannel" ] || [ -z "$memcache" ] || [ -z "$maintenance" ] || [ -z "$singleuser" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
@@ -783,7 +784,7 @@ printf $yellow"Files are being extracted... \n"$reset
 echo ""
 	mkdir -p "$ncpath"
 	pv -w 80 $html/nextcloud-$ncversion.tar.bz2 | tar xjf - -C $html
-	
+
 	{
 	mv $standardpath/* $ncpath/
 	mv $standardpath/.* $ncpath/
@@ -854,7 +855,7 @@ adminpwd="$({
      done
  } | sort -R | awk '{printf "%s",$1}')"
 sleep 1
-printf $green"Done!"$reset"\n"
+printf $green"Done!\n"$reset
 echo ""
 sleep 1
 
@@ -871,7 +872,7 @@ else
 #################
 ##  DATABASE  ##
 #################
-printf $yellow"Creating Database..."$reset"\n"
+printf $yellow"Creating Database...\n"$reset
 echo ""
 {
 mysql -u root -p$database_root -e "CREATE DATABASE $dbname"
@@ -997,7 +998,11 @@ fi
 
 # Install Nextcloud via autoconfig.php
 printf $yellow"INDEXING...\n"$reset
-url=$url1/$folder/index.php		# trigger for autoconfig.php
+if [ -z "$folder" ]; then
+	url=$url1/index.php				# trigger for autoconfig.php
+else
+	url=$url1/$folder/index.php		# trigger for autoconfig.php
+fi
 curl $url
 echo ""
 printf $green"INDEXING COMPLETE\n"$reset
@@ -1017,12 +1022,12 @@ shopt -s nocasematch
 	if [[ "$memcache" = "APCu" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set memcache.local --value "\OC\Memcache\APCu"
 	fi
-	
+
 	# Check for Display name value
 	if [[ "$displayname" = "true" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set allow_user_to_change_display_name --value 'true'
 	fi
-	
+
 	# Check for updater channel
 	if [[ "$rlchannel" = "daily" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set updater.release.channel --value 'daily'
@@ -1038,7 +1043,7 @@ shopt -s nocasematch
 	if [[ "$maintenance" = "true" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set maintenance --value 'true'
 	fi
-	
+
 	# Check for single user mode
 	if [[ "$singleuser" = "true" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set singleuser --value 'true'
