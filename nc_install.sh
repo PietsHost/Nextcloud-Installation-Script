@@ -42,6 +42,7 @@ memcache='APCu'
 maintenance='false'
 singleuser='false'
 
+
 ################################
 ######   DEFAULT VAR END   #####
 ################################
@@ -81,7 +82,7 @@ printf $green"$header"$reset
 echo ""
 echo ""
 
-printf "Checking minimal system requirements..\n."
+printf "Checking minimal system requirements...\n"
 echo ""
 sleep 2
 
@@ -124,7 +125,6 @@ else
 fi
 sleep 1
 
-echo ""
 printf $yellow"Installing dependencies...\n"$reset
 
 {
@@ -180,6 +180,16 @@ function check(){
 [  -z "$singleuser" ] && singlestat="$check_miss" || singlestat="$check_ok"
 }
 
+function checkapps(){
+[  -z "$contactsinstall" ] && contactsstat="$check_miss" || contactsstat="$check_ok"
+[  -z "$calendarinstall" ] && calendarstat="$check_miss" || calendarstat="$check_ok"
+[  -z "$mailinstall" ] && mailstat="$check_miss" || mailstat="$check_ok"
+[  -z "$notesinstall" ] && notesstat="$check_miss" || notesstat="$check_ok"
+[  -z "$tasksinstall" ] && tasksstat="$check_miss" || tasksstat="$check_ok"
+[  -z "$galleryinstall" ] && gallerystat="$check_miss" || gallerystat="$check_ok"
+}
+
+# autoinput on keypress
 readOne () {
     local oldstty
     oldstty=$(stty -g)
@@ -187,6 +197,169 @@ readOne () {
     dd bs=1 count=1 2>/dev/null
     stty "$oldstty"
 }
+
+function contactsinstall {
+		# Download and install Contacts
+		if [ -d $ncpath/apps/contacts ]
+		then
+			sleep 1
+		else
+			wget -q $contacs_repo/v$contacs/$contacs_file -P $ncpath/apps
+			tar -zxf $ncpath/apps/$contacs_file -C $ncpath/apps
+			cd $ncpath/apps
+			rm $contacs_file
+		fi
+
+		# Enable Contacts
+		if [ -d $ncpath/apps/contacts ]
+		then
+			sudo -u ${htuser} php $ncpath/occ app:enable contacts
+		fi
+		}
+
+function calendarinstall {
+		# Download and install Calendar
+		if [ -d $ncpath/apps/calendar ]
+		then
+			sleep 1
+		else
+			wget -q $calendar_repo/v$calendar/$calendar_file -P $ncpath/apps
+			tar -zxf $ncpath/apps/$calendar_file -C $ncpath/apps
+			cd $ncpath/apps
+			rm $calendar_file
+		fi
+
+		# Enable Calendar
+		if [ -d $ncpath/apps/calendar ]
+		then
+			sudo -u ${htuser} php $ncpath/occ app:enable calendar
+		fi
+		}
+
+function mailinstall {
+		# Download and install Mail
+		if [ -d $ncpath/apps/mail ]
+		then
+			sleep 1
+		else
+			wget -q $mail_repo/v$mail/$mail_file -P $ncpath/apps
+			tar -zxf $ncpath/apps/$mail_file -C $ncpath/apps
+			cd $ncpath/apps
+			rm $mail_file
+		fi
+
+		# Enable Mail
+		if [ -d $ncpath/apps/mail ]
+		then
+			sudo -u ${htuser} php $ncpath/occ app:enable mail
+		fi
+		}
+
+function notesinstall {
+		# Download and install notes
+		if [ -d $ncpath/apps/notes ]
+		then
+			sleep 1
+		else
+			wget -q $notes_repo/v$notes/$notes_file -P $ncpath/apps
+			tar -zxf $ncpath/apps/$notes_file -C $ncpath/apps
+			cd $ncpath/apps
+			rm $notes_file
+		fi
+
+		# Enable notes
+		if [ -d $ncpath/apps/notes ]
+		then
+			sudo -u ${htuser} php $ncpath/occ app:enable notes
+		fi
+		}
+
+function tasksinstall {
+		# Download and install tasks
+		if [ -d $ncpath/apps/tasks ]
+		then
+			sleep 1
+		else
+			wget -q $tasks_repo/v$tasks/$tasks_file -P $ncpath/apps
+			tar -zxf $ncpath/apps/$tasks_file -C $ncpath/apps
+			cd $ncpath/apps
+			rm $tasks_file
+		fi
+
+		# Enable tasks
+		if [ -d $ncpath/apps/tasks ]
+		then
+			sudo -u ${htuser} php $ncpath/occ app:enable tasks
+		fi
+		}
+
+function galleryinstall {
+		# Download and install gallery
+		if [ -d $ncpath/apps/gallery ]
+		then
+			sleep 1
+		else
+			wget -q $gallery_repo/v$gallery/$gallery_file -P $ncpath/apps
+			tar -zxf $ncpath/apps/$gallery_file -C $ncpath/apps
+			cd $ncpath/apps
+			rm $gallery_file
+		fi
+
+		# Enable gallery
+		if [ -d $ncpath/apps/gallery ]
+		then
+			sudo -u ${htuser} php $ncpath/occ app:enable gallery
+		fi
+		}
+
+function progress () {
+    s=0.75;
+    f=0.2;
+    echo -ne "\r\n";
+    while true; do
+           sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [             ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [>            ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-->          ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [--->         ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [---->        ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [----->       ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------>      ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------->     ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-------->    ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [--------->   ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [---------->  ] working: ${s} secs." \
+        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-----------> ] working: ${s} secs.";
+           sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------------>] working: ${s} secs.";
+    done;
+}
+###############
+##  NC APPS  ##
+###############
+
+# Contacs
+contacs=$(curl -s https://api.github.com/repos/nextcloud/contacts/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
+contacs_file=contacts.tar.gz
+contacs_repo=https://github.com/nextcloud/contacts/releases/download
+# Calendar
+calendar=$(curl -s https://api.github.com/repos/nextcloud/calendar/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
+calendar_file=calendar.tar.gz
+calendar_repo=https://github.com/nextcloud/calendar/releases/download
+# Mail
+mail=$(curl -s https://api.github.com/repos/nextcloud/mail/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
+mail_file=mail.tar.gz
+mail_repo=https://github.com/nextcloud/mail/releases/download
+# Tasks
+tasks=$(curl -s https://api.github.com/repos/nextcloud/tasks/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
+tasks_file=tasks.tar.gz
+tasks_repo=https://github.com/nextcloud/tasks/releases/download
+# Gallery
+gallery=$(curl -s https://api.github.com/repos/nextcloud/gallery/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
+gallery_file=gallery.tar.gz
+gallery_repo=https://github.com/nextcloud/gallery/releases/download
+# Notes
+notes=$(curl -s https://api.github.com/repos/nextcloud/notes/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
+notes_file=notes.tar.gz
+notes_repo=https://github.com/nextcloud/notes/releases/download
 #################################
 ######   INITIALIZATION    ######
 #################################
@@ -204,9 +377,14 @@ echo ""
   echo "      |    for you. To make it work, you have    |"
   echo "      |      to enter some variables on the      |"
   echo "      |             following pages.             |"
-  echo "      |    Please read the documentation for     |"
-  echo "      |     further information, what syntax     |"
-  echo "      |    is required to make the script work   |"
+  echo "      |    Please read the documentation at      |"
+  echo "      |     github for further information,      |"
+  echo "      |    what syntax is required to make the   |"
+  echo "      |       	      script work.               |"
+  echo "      |                                          |"
+  echo "      |     Note: you can not go back within     |"
+  echo "      |    this script! please read carefully    |"
+  echo "      |              what is required.           |"
   echo "      |                                          |"
   printf "      |  $yellow Database-Name, Database-password and  $reset |\n"
   printf "      |    $yellow Admin-password will be generated    $reset |\n"
@@ -214,12 +392,36 @@ echo ""
   echo "------+------------------------------------------+------"
   echo "      |                                          |"
   echo "------+------------------------------------------+------"
-read -n1 -r -p "      |   Press any key to continue..." key
+read -n1 -r -p "      |   Press any key to continue...           | " key
 
 if [ "$key" = '' ]; then
 	return
 fi
 echo ""
+
+clear
+printf $green"$header"$reset
+echo ""
+echo ""
+
+# Check if Nextcloud is already installed installed.
+
+if [ -f "$ncpath/occ" ]; then
+	chmod +x $ncpath/occ
+	CURRENTVERSION=$(sudo -u $htuser php $ncpath/occ status | grep "versionstring" | awk '{print $3}')
+	echo ""
+    printf $redbg"Nextcloud is already installed...\n"$reset
+	echo ""
+	echo "If your version isn't up to date make use of the Piet's Host ncupdate-script."
+	echo ""
+	sleep 2
+    exit 0
+else
+	echo ""
+    printf $green"No Nextcloud installation found! Installing continues...\n"$reset
+	echo ""
+	sleep 2
+fi
 
 #################################
 ######   INITIALIZATION    ######
@@ -300,7 +502,7 @@ echo ""
     [  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
 	else
 		printf $redbg"Wrong input format or choosen directory does not exist..."$reset
-		html='/'
+		html='/var/www/html'
         sleep 3
         continue
 	fi
@@ -350,8 +552,8 @@ clear
 printf $green"$header"$reset
 echo ""
 echo ""
-   read -e -p "Do you want to setup SMTP (y/n)? " smtp
-
+echo -en "Do you want to setup SMTP (y/n)? ";smtp=$(readOne)
+   #read -e -p "Do you want to setup SMTP (y/n)? " smtp
    if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
 
 #################################
@@ -596,6 +798,7 @@ done
 ###################################
 ######   Setup Page 3 Start   #####
 ###################################
+
 clear
 while true; do
   clear
@@ -721,6 +924,167 @@ done
 ######   Setup Page 3 End   #####
 #################################
 
+# ask for Apps-Setup
+clear
+printf $green"$header"$reset
+echo ""
+echo ""
+echo -en "Do you want to setup additional Apps (y/n)? ";appsinstall=$(readOne)
+   #read -e -p "Do you want to setup additional Apps (y/n)? " appsinstall
+   if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
+
+#################################
+######   Apps-Setup Start   #####
+#################################
+contactsinstall='true'
+calendarinstall='true'
+mailinstall='false'
+notesinstall='false'
+tasksinstall='false'
+galleryinstall='false'
+
+checkapps
+
+clear
+while true; do
+  clear
+printf $green"$header"$reset
+echo ""
+echo ""
+
+  echo "--------------------------------------------------------------------"
+  echo "                    Setup Apps"
+  echo "------+------------+----------------+-------------------------------"
+  echo "  Nr. |   Status   |                |    value"
+  echo "------+------------+----------------+-------------------------------"
+  printf "  1   |  $contactsstat   |      contacts: |     "$contactsinstall"\n"
+  printf "  2   |  $calendarstat   |      calendar: |     "$calendarinstall"\n"
+  printf "  3   |  $mailstat   |          mail: |     "$mailinstall"\n"
+  printf "  4   |  $notesstat   |         notes: |     "$notesinstall"\n"
+  printf "  5   |  $tasksstat   |         tasks: |     "$tasksinstall"\n"
+  printf "  6   |  $gallerystat   |       gallery: |     "$galleryinstall"\n"
+  echo "------+------------+----------------+-------------------------------"
+  printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+  printf "${red}[q]${reset} Quit\n"
+  echo -en "Enter [1-6], [s] or [q]: ";key5=$(readOne)
+
+if [ "$key5" = "1" ]; then
+	echo ""
+  	echo -n "Type true or false: "
+	read contactsinstall
+
+	# Check for correct input
+	if [ "$contactsinstall" = "true" ] || [ "$contactsinstall" = "false" ]; then
+		[  -z "$contactsinstall" ] && contactsstat="$check_miss" || contactsstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Type true or false..."$reset
+		contactsinstall='true'
+        sleep 3
+        continue
+	fi
+
+
+  elif [ "$key5" = "2" ]; then
+  echo ""
+	echo -n "Type true or false: "
+	read calendarinstall
+
+	# Check for correct input
+	if [ "$calendarinstall" = "true" ] || [ "$calendarinstall" = "false" ]; then
+		[  -z "$calendarinstall" ] && calendarstat="$check_miss" || calendarstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Type true or false..."$reset
+		calendarinstall='true'
+        sleep 3
+        continue
+	fi
+
+  elif [ "$key5" = "3" ]; then
+  echo ""
+	echo -n "Type true or false: "
+	read mailinstall
+	
+	# Check for correct input
+	if [ "$mailinstall" = "true" ] || [ "$mailinstall" = "false" ]; then
+		[  -z "$mailinstall" ] && mailstat="$check_miss" || mailstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Type true or false..."$reset
+		mailinstall='true'
+        sleep 3
+        continue
+	fi
+
+  elif [ "$key5" = "4" ]; then
+  echo ""
+	echo -n "Type true or false: "
+	read notesinstall
+
+	# Check for correct input
+	if [ "$notesinstall" = "true" ] || [ "$notesinstall" = "false" ]; then
+		[  -z "$notesinstall" ] && notesstat="$check_miss" || notesstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Type true or false..."$reset
+		notesinstall='true'
+        sleep 3
+        continue
+	fi
+
+  elif [ "$key5" = "5" ]; then
+  echo ""
+	echo -n "Type true or false: "
+	read tasksinstall
+
+	# Check for correct input
+	if [ "$tasksinstall" = "true" ] || [ "$tasksinstall" = "false" ]; then
+		[  -z "$tasksinstall" ] && tasksstat="$check_miss" || tasksstat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Type true or false..."$reset
+		tasksinstall='true'
+        sleep 3
+        continue
+	fi
+
+  elif [ "$key5" = "6" ]; then
+  echo ""
+	echo -n "Type true or false: "
+	read galleryinstall
+
+	# Check for correct input
+	if [ "$galleryinstall" = "true" ] || [ "$galleryinstall" = "false" ]; then
+		[  -z "$galleryinstall" ] && gallerystat="$check_miss" || gallerystat="$check_ok"
+	else
+		printf $redbg"Wrong input format. Type true or false..."$reset
+		galleryinstall='true'
+        sleep 3
+        continue
+	fi
+
+	elif [ "$key5" = "s" ]; then
+        if [ -z "$contactsinstall" ] || [ -z "$calendarinstall" ] || [ -z "$mailinstall" ] || [ -z "$notesinstall" ] || [ -z "$tasksinstall" ] || [ -z "$galleryinstall" ]; then
+        	printf $redbg"One or more variables are undefined. Aborting..."$reset
+        	sleep 3
+        	continue
+        else
+        	echo "-----------------------------"
+        break
+        fi
+  elif [ "$key5" = "q" ]; then
+  echo ""
+    exit
+  fi
+done
+
+else
+	clear
+printf $green"$header"$reset"\n"
+echo ""
+	printf "Skipping Apps Setup..."
+	sleep 2
+fi
+###############################
+######   Apps-Setup End   #####
+###############################
+
 clear
 printf $green"$header"$reset"\n"
 echo ""
@@ -730,10 +1094,11 @@ ncversion=$(curl -s -m 900 $ncrepo/ | tac | grep unknown.gif | sed 's/.*"nextclo
 
 # Check Nextcloud
 echo "Checking latest released version on the Nextcloud download server and if it's possible to download..."
+echo ""
 wget -q -T 10 -t 2 $ncrepo/nextcloud-$ncversion.tar.bz2 > /dev/null
 if [ $? -eq 0 ]; then
-	echo ""
     printf $ugreen"SUCCESS!\n"$reset
+	sleep 1
 	rm -f nextcloud-$ncversion.tar.bz2
 else
     echo ""
@@ -775,30 +1140,8 @@ fi
 ##  INSTALLATION  ##
 ####################
 
-# Check if Nextcloud is already installed installed.
-
-if [ -f "$ncpath/occ" ]; then
-	chmod +x $ncpath/occ
-	CURRENTVERSION=$(sudo -u $htuser php $ncpath/occ status | grep "versionstring" | awk '{print $3}')
-	echo ""
-    printf "Latest version is: ${ugreen}$ncversion ${reset}\n"
-	echo ""
-    printf $redbg"Nextcloud is already installed...\n"$reset
-	echo ""
-	echo "If your version isn't up to date make use of the Piet's Host ncupdate-script."
-	echo ""
-	sleep 2
-    exit 0
-else
-	echo ""
-    printf "Latest version is: ${ugreen}$ncversion${reset}\n"
-	echo ""
-    printf $green"No Nextcloud installation found! Installing continues...\n"$reset
-	echo ""
-	sleep 2
-fi
-
 # Download latest Nextcloud-Files
+	echo ""
 	echo "Downloading $ncrepo/nextcloud-$ncversion.tar.bz2..."
 echo ""
 wget -q -T 10 -t 2 $ncrepo/nextcloud-$ncversion.tar.bz2 -P $html
@@ -843,7 +1186,6 @@ echo ""
 
 	printf $yellow"Let's do some magic... Generating usernames and passwords..\n"$reset
 	echo ""
-	sleep 1
 
 # Generate random Database-username
 function vowel() {
@@ -943,7 +1285,7 @@ $AUTOCONFIG = array(
 'adminlogin' => "$adminuser",
 'adminpass' => "$adminpwd",
 'directory' => "$ncpath/data",
-'trusted_domains' => 
+'trusted_domains' =>
   array (
     0 => "$url2",
   ),
@@ -985,19 +1327,13 @@ then
 	sleep 1
 	exit 0
 else
-echo "Creating possible missing Directories"
-echo ""
 mkdir -p $ncpath/data
 mkdir -p $ncpath/assets
 mkdir -p $ncpath/updater
 
-echo "chmod Files and Directories"
-echo ""
 find ${ncpath}/ -type f -print0 | xargs -0 chmod 0640
 find ${ncpath}/ -type d -print0 | xargs -0 chmod 0750
 
-echo "chown Directories"
-echo ""
 chown -R ${rootuser}:${htgroup} ${ncpath}
 chown -R ${htuser}:${htgroup} ${ncpath}/apps/
 chown -R ${htuser}:${htgroup} ${ncpath}/assets/
@@ -1008,8 +1344,6 @@ chown -R ${htuser}:${htgroup} ${ncpath}/updater/
 
 chmod +x ${ncpath}/occ
 
-echo "chmod/chown .htaccess"
-echo ""
 if [ -f ${ncpath}/.htaccess ]
  then
   chmod 0644 ${ncpath}/.htaccess
@@ -1037,13 +1371,14 @@ if [ -z "$folder" ]; then
 else
 	url=$url1/$folder/index.php		# trigger for autoconfig.php
 fi
+{
 curl $url
+} &> /dev/null
 echo ""
 printf $green"INDEXING COMPLETE\n"$reset
 echo ""
 sleep 1
 printf $green"Finishing setup...\n"$reset
-echo ""
 
 #################
 ##  FINISHING  ##
@@ -1051,7 +1386,8 @@ echo ""
 
 # enable 'no case match'
 shopt -s nocasematch
-
+while true; do progress; done &
+	{
 	# Check for APCu
 	if [[ "$memcache" = "APCu" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set memcache.local --value "\OC\Memcache\APCu"
@@ -1066,7 +1402,7 @@ shopt -s nocasematch
 	if [[ "$rlchannel" = "daily" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set updater.release.channel --value 'daily'
 	elif [[ "$rlchannel" = "stable" ]]; then
-		sudo -u ${htuser} php $ncpath/occ config:system:set updater.release.channel --value 'daily'
+		sudo -u ${htuser} php $ncpath/occ config:system:set updater.release.channel --value 'stable'
 	elif [[ "$rlchannel" = "beta" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set updater.release.channel --value 'beta'
 	elif [[ "$rlchannel" = "production" ]]; then
@@ -1083,12 +1419,17 @@ shopt -s nocasematch
 		sudo -u ${htuser} php $ncpath/occ config:system:set singleuser --value 'true'
 	fi
 
-# disable 'no case match'	
-shopt -u nocasematch
+	# Install Apps
+	if [[ "$contactsinstall" = "true" ]]; then contactsinstall; fi
+	if [[ "$calendarinstall" = "true" ]]; then calendarinstall; fi
+	if [[ "$mailinstall" = "true" ]]; then mailinstall; fi
+	if [[ "$notesinstall" = "true" ]]; then notesinstall; fi
+	if [[ "$tasksinstall" = "true" ]]; then tasksinstall; fi
+	if [[ "$galleryinstall" = "true" ]]; then galleryinstall; fi
 
-sudo -u ${htuser} php $ncpath/occ user:setting $adminuser settings email "$email"
+	sudo -u ${htuser} php $ncpath/occ user:setting $adminuser settings email "$email"
 
-if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
+	if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
 	sudo -u ${htuser} php $ncpath/occ config:system:set mail_from_address --value 'admin'
 	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpmode --value 'smtp'
 	sudo -u ${htuser} php $ncpath/occ config:system:set mail_domain --value "$smtpdomain"
@@ -1102,7 +1443,17 @@ if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
 fi
 echo ""
 sleep 2
+	} &> /dev/null
 
+	kill $!; trap 'kill $!' SIGTERM
+
+# disable 'no case match'
+shopt -u nocasematch
+
+echo ""
+echo ""
+printf $ugreen"Finished!\n"$reset
+sleep 2
 #################
 ##  ENDSCREEN  ##
 #################
@@ -1151,6 +1502,15 @@ printf $green"Navigate to $url and enjoy Nextcloud!\n"$reset
 		printf $green"sudo -u ${htuser} php $ncpath/occ maintenance:mode --off"$reset
 		sleep 2
 	fi
+	# Check for singleuser mode
+	if [[ "$singleuser" = "true" ]]; then
+		echo ""
+		printf $red"Your system is in singleuser mode! \n"$reset
+		echo ""
+		echo "To disable singleuser mode type:"
+		printf $green"sudo -u ${htuser} php $ncpath/occ singleuser:mode --off"$reset
+		sleep 2
+	fi
 
 echo ""
 } &>/dev/tty
@@ -1163,7 +1523,8 @@ echo ""
 installed=yes
 if [[ "$installed" == "yes" ]] ; then
     while true; do
-        read -e -p "Do you want to restart your server now (y/n)? " rsn=$(readOne)
+		echo -en "Do you want to restart your server now (y/n)? ";rsn=$(readOne)
+		echo ""
         case $rsn in
             [Yy]* ) break;;
             [Nn]* ) exit;
