@@ -24,8 +24,6 @@ url1="http://example.com"
 ncname=nextcloud1
 dbhost=localhost
 dbtype=mysql
-htuser='apache'  	# Webserver-User (CentOS: apache, suseLinux: wwwrun, etc..)
-htgroup='apache'	# Webserver-Group (CentOS: apache, suseLinux: www, etc...)
 rootuser='root'
 
 # E-mail
@@ -75,35 +73,6 @@ ncrepo="https://download.nextcloud.com/server/releases"
 
 ##########################################################################################
 
-# Check Status on startup
-function check(){
-[  -z "$url1" ] && domainstat="$check_miss" || domainstat="$check_ok"
-[  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
-[  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
-[  -z "$backup" ] && backupstat="$check_miss" || backupstat="$check_ok"
-[  "$folder" ] && folderstat="$check_ok"
-[  -z "$dbtype" ] && dbtypestat="$check_miss" || dbtypestat="$check_ok"
-[  -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
-[  -z "$email" ] && emailstat="$check_miss" || emailstat="$check_ok"
-[  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
-[  -z "$smtpauthreq" ] && smauthreqstat="$check_miss" || smauthreqstat="$check_ok"
-[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
-[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
-[  -z "$smtpname" ] && smnamestat="$check_miss" || smnamestat="$check_ok"
-[  -z "$smtppwd" ] && smpwdstat="$check_miss" || smpwdstat="$check_ok"
-[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
-[  -z "$htuser" ] && htusrstat="$check_miss" || htusrstat="$check_ok"
-[  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
-[  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
-[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
-[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"
-[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
-[  -z "$displayname" ] && dpnamestat="$check_miss" || dpnamestat="$check_ok"
-[  -z "$rlchannel" ] && rlchanstat="$check_miss" || rlchanstat="$check_ok"
-[  -z "$memcache" ] && memstat="$check_miss" || memstat="$check_ok"
-[  -z "$maintenance" ] && maintstat="$check_miss" || maintstat="$check_ok"
-[  -z "$singleuser" ] && singlestat="$check_miss" || singlestat="$check_ok"
-}
 ###################################
 ######   BEFORE SETUP START   #####
 ###################################
@@ -112,7 +81,7 @@ printf $green"$header"$reset
 echo ""
 echo ""
 
-printf "Checking minimal system requirements..."
+printf "Checking minimal system requirements..\n."
 echo ""
 sleep 2
 
@@ -136,7 +105,6 @@ elif [ -f /etc/os-release ]; then
 fi
 	arch=$(uname -m)
 
-echo ""
 printf $yellow"Detected : $os $ver $arch\n"$reset
 echo ""
 sleep 1
@@ -145,11 +113,10 @@ if [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ||
       "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ||
       "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) || 
 	  "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
-    echo ""
 	printf $green"Very Good! Your OS is compatible.\n"$reset
+	echo ""
 	sleep 1
 else
-	echo ""
     printf $red"Unfortunately, this OS is not supported by Piet's Host Install-script for Nextcloud.\n"$reset
     echo ""
 	sleep 2
@@ -158,15 +125,24 @@ fi
 sleep 1
 
 echo ""
-echo ""
 printf $yellow"Installing dependencies...\n"$reset
 
 {
 if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
+htuser='www-data'
+htgroup='www-data'
 	 sudo apt-get install -y pv bzip2 rsync
+elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
+htuser='www-data'
+htgroup='www-data'
+	apt-get install pv && apt-get install bzip2 && apt-get install rsync
 elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
+htuser='apache'
+htgroup='apache'
 	yum install -y pv bzip2 rsync php-process
 elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
+htuser='apache'
+htgroup='apache'
 	dnf install pv bzip2 rsync php-process
 fi
 } &> /dev/null
@@ -175,6 +151,42 @@ fi
 ######   BEFORE SETUP END   #####
 #################################
 
+# Check Status on startup
+function check(){
+[  -z "$url1" ] && domainstat="$check_miss" || domainstat="$check_ok"
+[  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
+[  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
+[  "$folder" ] && folderstat="$check_ok"
+[  -z "$dbtype" ] && dbtypestat="$check_miss" || dbtypestat="$check_ok"
+[  -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
+[  -z "$email" ] && emailstat="$check_miss" || emailstat="$check_ok"
+[  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
+[  -z "$smtpauthreq" ] && smauthreqstat="$check_miss" || smauthreqstat="$check_ok"
+[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
+[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
+[  -z "$smtpname" ] && smnamestat="$check_miss" || smnamestat="$check_ok"
+[  -z "$smtppwd" ] && smpwdstat="$check_miss" || smpwdstat="$check_ok"
+[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
+[  -z "$htuser" ] && htusrstat="$check_miss" || htusrstat="$check_ok"
+[  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
+[  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
+[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
+[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"
+[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
+[  -z "$displayname" ] && dpnamestat="$check_miss" || dpnamestat="$check_ok"
+[  -z "$rlchannel" ] && rlchanstat="$check_miss" || rlchanstat="$check_ok"
+[  -z "$memcache" ] && memstat="$check_miss" || memstat="$check_ok"
+[  -z "$maintenance" ] && maintstat="$check_miss" || maintstat="$check_ok"
+[  -z "$singleuser" ] && singlestat="$check_miss" || singlestat="$check_ok"
+}
+
+readOne () {
+    local oldstty
+    oldstty=$(stty -g)
+    stty -icanon -echo min 1 time 0
+    dd bs=1 count=1 2>/dev/null
+    stty "$oldstty"
+}
 #################################
 ######   INITIALIZATION    ######
 #################################
@@ -221,9 +233,9 @@ echo ""
 
 html='/var/www/html' # full installation path
 folder='nextcloud1'
-backup=$html/backup
 regex='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
 regexmail="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
+regexhttps='(https|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
 
 check
 clear
@@ -240,25 +252,31 @@ echo ""
   echo "------+------------+-----------------+------------------------------------"
   ###########    |xx-----------xxx|xxxxxxxxxXXXXXX:x|x"$var
   printf "  1   |  $domainstat   |         Domain: | "$url1"\n"
-  printf "  2   |  $namestat   |           Name: | "$ncname"\n"
-  printf "  3   |  $htmlstat   |      Directory: | "$html"\n"
-  printf "  4   |  $backupstat   |         backup: | "$backup"\n"
-  printf "  5   |  $folderstat   |         folder: | "$folder"\n"
+  printf "  2   |  $namestat   |           name: | "$ncname"\n"
+  printf "  3   |  $htmlstat   |      directory: | "$html"\n"
+  printf "  4   |  $folderstat   |         folder: | "$folder"\n"
   echo ""
-  printf "  6   |  $dbtypestat   |        DB-Type: | "$dbtype"\n"
-  printf "  7   |  $dbhoststat   |        DB-Host: | "$dbhost"\n"
+  printf "  5   |  $dbtypestat   |        DB-Type: | "$dbtype"\n"
+  printf "  6   |  $dbhoststat   |        DB-Host: | "$dbhost"\n"
   echo "------+------------+-----------------+------------------------------------"
-  printf "Type [1-7] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+  printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
-  echo -n "Enter [1-7], [s] or [q]: ";read key1
+  echo -n "Enter [1-6], [s] or [q]: ";key1=$(readOne)
 
   if [ "$key1" = "1" ]; then
+  echo ""
   	echo -n "Enter url (with http:// or https://): "
 	read url1
 
 	# Check for correct input
 	if [[ $url1 =~ $regex ]]; then
 		[  -z "$url1" ] && domainstat="$check_miss" || domainstat="$check_ok"
+		if [[ $url1 =~ $regexhttps ]]; then
+			printf $redbg"Make sure you have a valid SSL-Certificate or Nextcloud won't work as expected\n"$reset
+			sleep 4
+			echo "Press any key to continue..."
+			read x
+		fi
 	else
 		printf $redbg"Wrong input format. Enter a valid URL..."$reset
 		url1="http://example.com"
@@ -267,11 +285,13 @@ echo ""
 	fi
 
   elif [ "$key1" = "2" ]; then
+  echo ""
 	echo -n "Enter name: "
 	read ncname
 	[  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
 
   elif [ "$key1" = "3" ]; then
+  echo ""
 	echo -n "Enter html-directory (e.g. /var/www/html): "
 	read html
 
@@ -286,36 +306,25 @@ echo ""
 	fi
 
   elif [ "$key1" = "4" ]; then
-	echo -n "Enter backup directory (e.g. /var/www/html/backup): "
-	read backup
-	
-	# Check for correct input
-	if [[ -d $backup ]]; then
-		[  -z "$backup" ] && backupstat="$check_miss" || backupstat="$check_ok"
-	else
-		printf $redbg"Wrong input format or choosen directory does not exist..."$reset
-		backup='/'
-        sleep 3
-        continue
-	fi
-
-  elif [ "$key1" = "5" ]; then
+  echo ""
 	echo -n "Enter folder name (Leave empty, if you want to install to root directory): "
 	read folder
 	[  "$folder" ] && folderstat="$check_ok"
 
-  elif [ "$key1" = "6" ]; then
+  elif [ "$key1" = "5" ]; then
+  echo ""
 	echo -n "Enter Database-Type (e.g. mysql, sqlite, etc.): "
 	read dbtype
 	[  -z "$dbtype" ] && dbtypestat="$check_miss" || dbtypestat="$check_ok"
 
   elif [ "$key1" = "7" ]; then
+  echo ""
 	echo -n "Enter Database-Host (e.g. localhost): "
 	read dbhost
 	[  -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
 
   elif [ "$key1" = "s" ]; then
-        if [ -z "$url1" ] || [ -z "$ncname" ] || [ -z "$html" ] || [ -z "$backup" ] || [ -z "$dbtype" ] || [ -z "$dbhost" ]; then
+        if [ -z "$url1" ] || [ -z "$ncname" ] || [ -z "$html" ] || [ -z "$dbtype" ] || [ -z "$dbhost" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
         	sleep 3
         	continue
@@ -324,6 +333,7 @@ echo ""
         break
         fi
   elif [ "$key1" = "q" ]; then
+  echo ""
     exit
   fi
 done
@@ -371,14 +381,16 @@ echo ""
   echo "------+------------+-----------------+------------------------------------"
   printf "Type [1-8] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-8], [s] or [q]: ";read key2
+  echo -en "Enter [1-8], [s] or [q]: ";key2=$(readOne)
 
   if [ "$key2" = "1" ]; then
+  echo ""
   	echo -n "Enter Auth-Type (LOGIN, PLAIN, etc): "
 	read smtpauth
     [  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
 
   elif [ "$key2" = "2" ]; then
+  echo ""
 	echo -n "Enter SMTP-Host (e.g. yourdomain.com): "
 	read smtphost
 
@@ -393,6 +405,7 @@ echo ""
 	fi
 
   elif [ "$key2" = "3" ]; then
+  echo ""
 	echo -n "Enter SMTP-Port (default :587): "
 	read smtpport
 
@@ -407,16 +420,19 @@ echo ""
 	fi
 
   elif [ "$key2" = "4" ]; then
+  echo ""
 	echo -n "Enter SMTP-Sendername (e.g. admin, info, etc): "
 	read smtpname
 	[  -z "$smtpname" ] && smnamestat="$check_miss" || smnamestat="$check_ok"
 
   elif [ "$key2" = "5" ]; then
+  echo ""
 	echo -n "Enter SMTP-password: "
 	read smtppwd
 	[  -z "$smtppwd" ] && smpwdstat="$check_miss" || smpwdstat="$check_ok"
 
   elif [ "$key2" = "6" ]; then
+  echo ""
 	echo -n "Enter SMTP-Security (tls, ssl, none): "
 	read smtpsec
 
@@ -431,6 +447,7 @@ echo ""
 	fi
 
   elif [ "$key2" = "7" ]; then
+  echo ""
 	echo -n "Is SMTP-Authentification required? (1 for yes - 0 for no): "
 	read smtpauthreq
 
@@ -445,6 +462,7 @@ echo ""
 	fi
 
   elif [ "$key2" = "8" ]; then
+  echo ""
 	echo -n "Set SMTP sender Domain (e.g. yourdomain.com): "
 	read smtpdomain
 
@@ -468,6 +486,7 @@ echo ""
         break
         fi
   elif [ "$key2" = "q" ]; then
+  echo ""
     exit
   fi
 done
@@ -486,6 +505,7 @@ fi
 ###################################
 ######   Setup Page 2 Start   #####
 ###################################
+
 clear
 while true; do
   clear
@@ -508,9 +528,10 @@ echo ""
   echo "------+------------+------------------+------------------------------------"
   printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-6], [s] or [q]: ";read key3
+  echo -en "Enter [1-6], [s] or [q]: ";key3=$(readOne)
 
   if [ "$key3" = "1" ]; then
+  echo ""
   	echo -n "Enter your E-mail: "
 	read email
 
@@ -525,26 +546,31 @@ echo ""
 	fi
 
   elif [ "$key3" = "2" ]; then
+  echo ""
 	echo -n "Please enter desired admin username for Nextcloud: "
 	read adminuser
 	[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
 
   elif [ "$key3" = "3" ]; then
+  echo ""
 	echo -n "Please enter password for database root account (won't be stored): "
 	read database_root
 	[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"	
 
   elif [ "$key3" = "4" ]; then
+  echo ""
 	echo -n "Enter WWW-User (e.g. apache, apache2, etc.): "
 	read htuser
 	[  -z "$htuser" ] && htusrstat="$check_miss" || htusrstat="$check_ok"
 
   elif [ "$key3" = "5" ]; then
+  echo ""
 	echo -n "Enter WWW-Group (e.g. apache, www-data, etc.): "
 	read htgroup
 	[  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
 
   elif [ "$key3" = "6" ]; then
+  echo ""
 	echo -n "Enter root user (usually: root): "
 	read rootuser
 	[  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
@@ -559,6 +585,7 @@ echo ""
         break
         fi
   elif [ "$key3" = "q" ]; then
+  echo ""
     exit
   fi
 done
@@ -588,9 +615,10 @@ echo ""
   echo "------+------------+------------------+------------------------------------"
   printf "Type [1-5] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-5], [s] or [q]: ";read key3
+  echo -en "Enter [1-5], [s] or [q]: ";key4=$(readOne)
 
-  if [ "$key3" = "1" ]; then
+  if [ "$key4" = "1" ]; then
+  echo ""
   	echo -n "Allow users to change display name? (true/false): "
 	read displayname
 
@@ -606,7 +634,8 @@ echo ""
 	fi
 	shopt -u nocasematch
 
-  elif [ "$key3" = "2" ]; then
+  elif [ "$key4" = "2" ]; then
+  echo ""
 	echo -n "The channel that Nextcloud should use to look for updates (daily, beta, stable, production) "
 	read rlchannel
 
@@ -622,7 +651,8 @@ echo ""
 	fi
 	shopt -u nocasematch
 
-  elif [ "$key3" = "3" ]; then
+  elif [ "$key4" = "3" ]; then
+  echo ""
 	echo -n "Do you want to use memcache? (none, APCu): "
 	read memcache
 
@@ -638,7 +668,8 @@ echo ""
 	fi
 	shopt -u nocasematch
 
-  elif [ "$key3" = "4" ]; then
+  elif [ "$key4" = "4" ]; then
+  echo ""
 	echo -n "Do you want to enable maintenance mode? (true/false): "
 	read maintenance
 
@@ -654,7 +685,8 @@ echo ""
 	fi
 	shopt -u nocasematch
 
-  elif [ "$key3" = "5" ]; then
+  elif [ "$key4" = "5" ]; then
+  echo ""
 	echo -n "Do you want to enable single user mode? (true/false): "
 	read singleuser
 
@@ -670,7 +702,8 @@ echo ""
 	fi
 	shopt -u nocasematch
 
-  elif [ "$key3" = "s" ]; then
+  elif [ "$key4" = "s" ]; then
+  echo ""
         if [ -z "$displayname" ] || [ -z "$rlchannel" ] || [ -z "$memcache" ] || [ -z "$maintenance" ] || [ -z "$singleuser" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
 			sleep 3
@@ -679,7 +712,8 @@ echo ""
         	echo "-----------------------------"
         break
         fi
-  elif [ "$key3" = "q" ]; then
+  elif [ "$key4" = "q" ]; then
+  echo ""
     exit
   fi
 done
@@ -710,7 +744,7 @@ else
 fi
 
 # Check if variables are set
-if [ -z "$html" ] || [ -z "$backup" ] || [ -z "$ncpath" ] || [ -z "$ncname" ] || [ -z "$dbhost" ] || [ -z "$dbtype" ] || [ -z "$htuser" ] || [ -z "$htgroup" ] || [ -z "$rootuser" ] || [ -z "$standardpath" ] || [ -z "$ncrepo" ] || [ -z "$ncversion" ];
+if [ -z "$html" ] || [ -z "$ncpath" ] || [ -z "$ncname" ] || [ -z "$dbhost" ] || [ -z "$dbtype" ] || [ -z "$htuser" ] || [ -z "$htgroup" ] || [ -z "$rootuser" ] || [ -z "$standardpath" ] || [ -z "$ncrepo" ] || [ -z "$ncversion" ];
 then
 
 	echo ""
@@ -1129,7 +1163,7 @@ echo ""
 installed=yes
 if [[ "$installed" == "yes" ]] ; then
     while true; do
-        read -e -p "Do you want to restart your server now (y/n)? " rsn
+        read -e -p "Do you want to restart your server now (y/n)? " rsn=$(readOne)
         case $rsn in
             [Yy]* ) break;;
             [Nn]* ) exit;
