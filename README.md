@@ -33,5 +33,5 @@ chmod +x ./nc_install.sh
 I'm sure it will work on every Linux System, even if I haven't tested it yet :)
 
 ## Requirements
-This script requires the following packages: `pv bzip2 rsync php-process`<br />
+This script requires the following packages: `pv bzip2 rsync php-process bc`<br />
 The packages will be installed automatically when you run the script.
