@@ -131,19 +131,19 @@ printf $yellow"Installing dependencies...\n"$reset
 if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
 htuser='www-data'
 htgroup='www-data'
-	 sudo apt-get install -y pv bzip2 rsync
+	 sudo apt-get install -y pv bzip2 rsync bc
 elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
 htuser='www-data'
 htgroup='www-data'
-	apt-get install pv && apt-get install bzip2 && apt-get install rsync
+	apt-get install pv && apt-get install bzip2 && apt-get install rsync && apt-get install bc
 elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
 htuser='apache'
 htgroup='apache'
-	yum install -y pv bzip2 rsync php-process
+	yum install -y pv bzip2 rsync php-process bc
 elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
 htuser='apache'
 htgroup='apache'
-	dnf install pv bzip2 rsync php-process
+	dnf install pv bzip2 rsync php-process bc
 fi
 } &> /dev/null
 
@@ -256,7 +256,7 @@ function mailinstall {
 		}
 
 function notesinstall {
-		# Download and install notes
+		# Download and install Notes
 		if [ -d $ncpath/apps/notes ]
 		then
 			sleep 1
@@ -267,7 +267,7 @@ function notesinstall {
 			rm $notes_file
 		fi
 
-		# Enable notes
+		# Enable Notes
 		if [ -d $ncpath/apps/notes ]
 		then
 			sudo -u ${htuser} php $ncpath/occ app:enable notes
@@ -275,7 +275,7 @@ function notesinstall {
 		}
 
 function tasksinstall {
-		# Download and install tasks
+		# Download and install Tasks
 		if [ -d $ncpath/apps/tasks ]
 		then
 			sleep 1
@@ -286,7 +286,7 @@ function tasksinstall {
 			rm $tasks_file
 		fi
 
-		# Enable tasks
+		# Enable Tasks
 		if [ -d $ncpath/apps/tasks ]
 		then
 			sudo -u ${htuser} php $ncpath/occ app:enable tasks
@@ -294,7 +294,7 @@ function tasksinstall {
 		}
 
 function galleryinstall {
-		# Download and install gallery
+		# Download and install Gallery
 		if [ -d $ncpath/apps/gallery ]
 		then
 			sleep 1
@@ -305,7 +305,7 @@ function galleryinstall {
 			rm $gallery_file
 		fi
 
-		# Enable gallery
+		# Enable Gallery
 		if [ -d $ncpath/apps/gallery ]
 		then
 			sudo -u ${htuser} php $ncpath/occ app:enable gallery
@@ -450,7 +450,7 @@ echo ""
   echo "--------------------------------------------------------------------------"
   echo "                    Setup			Page 1/3"
   echo "------+------------+-----------------+------------------------------------"
-  echo "  Nr. |   Status   |                 |    value"
+  echo "  Nr. |   Status   |     description |    value"
   echo "------+------------+-----------------+------------------------------------"
   ###########    |xx-----------xxx|xxxxxxxxxXXXXXX:x|x"$var
   printf "  1   |  $domainstat   |         Domain: | "$url1"\n"
@@ -553,7 +553,6 @@ printf $green"$header"$reset
 echo ""
 echo ""
 echo -en "Do you want to setup SMTP (y/n)? ";smtp=$(readOne)
-   #read -e -p "Do you want to setup SMTP (y/n)? " smtp
    if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
 
 #################################
@@ -570,7 +569,7 @@ echo ""
   echo "--------------------------------------------------------------------------"
   echo "                    Setup SMTP"
   echo "------+------------+-----------------+------------------------------------"
-  echo "  Nr. |   Status   |                 |    value"
+  echo "  Nr. |   Status   |     description |    value"
   echo "------+------------+-----------------+------------------------------------"
   printf "  1   |  $smauthstat   |      Auth-Type: | "$smtpauth"\n"
   printf "  2   |  $smhoststat   |      SMTP-Host: | "$smtphost"\n"
@@ -717,7 +716,7 @@ echo ""
   echo "--------------------------------------------------------------------------"
   echo "                    Setup			Page 2/3"
   echo "------+------------+------------------+------------------------------------"
-  echo "  Nr. |   Status   |                  |    value"
+  echo "  Nr. |   Status   |      description |    value"
   echo "------+------------+------------------+------------------------------------"
   printf "  1   |  $emailstat   |          E-Mail: | "$email"\n"
   printf "  2   |  $adusrstat   |  Admin Username: | "$adminuser"\n"
@@ -808,7 +807,7 @@ echo ""
   echo "--------------------------------------------------------------------------"
   echo "                    Setup			Page 3/3"
   echo "------+------------+------------------+------------------------------------"
-  echo "  Nr. |   Status   |                  |    value"
+  echo "  Nr. |   Status   |      description |    value"
   echo "------+------------+------------------+------------------------------------"
   printf "  1   |  $dpnamestat   |    Display name: | "$displayname"\n"
   printf "  2   |  $rlchanstat   | Release Channel: | "$rlchannel"\n"
@@ -821,21 +820,13 @@ echo ""
   echo -en "Enter [1-5], [s] or [q]: ";key4=$(readOne)
 
   if [ "$key4" = "1" ]; then
-  echo ""
-  	echo -n "Allow users to change display name? (true/false): "
-	read displayname
-
-	# Check for correct input
-	shopt -s nocasematch
-	if [[ "$displayname" = "true" ]] || [[ "$displayname" = "false" ]]; then
-		[  -z "$displayname" ] && dpnamestat="$check_miss" || dpnamestat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Please type true/false..."$reset
+  if [ "$displayname" = "true" ]; then
+		displayname='false'
+		dpnamestat="$check_ok"
+	elif [ "$displayname" = "false" ]; then
 		displayname='true'
-        sleep 3
-        continue
+		dpnamestat="$check_ok"
 	fi
-	shopt -u nocasematch
 
   elif [ "$key4" = "2" ]; then
   echo ""
@@ -872,38 +863,22 @@ echo ""
 	shopt -u nocasematch
 
   elif [ "$key4" = "4" ]; then
-  echo ""
-	echo -n "Do you want to enable maintenance mode? (true/false): "
-	read maintenance
-
-	# Check for correct input
-	shopt -s nocasematch
-	if [[ "$maintenance" = "true" ]] || [[ "$maintenance" = "false" ]]; then
-		[  -z "$maintenance" ] && maintstat="$check_miss" || maintstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Please type true/false..."$reset
+  if [ "$maintenance" = "true" ]; then
 		maintenance='false'
-        sleep 3
-        continue
+		maintstat="$check_ok"
+	elif [ "$maintenance" = "false" ]; then
+		maintenance='true'
+		maintstat="$check_ok"
 	fi
-	shopt -u nocasematch
 
-  elif [ "$key4" = "5" ]; then
-  echo ""
-	echo -n "Do you want to enable single user mode? (true/false): "
-	read singleuser
-
-	# Check for correct input
-	shopt -s nocasematch
-	if [[ "$singleuser" = "true" ]] || [[ "$singleuser" = "false" ]]; then
-		[  -z "$singleuser" ] && singlestat="$check_miss" || singlestat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Please type true/false..."$reset
+  elif [ "$key4" = "5" ]; then	
+	if [ "$singleuser" = "true" ]; then
 		singleuser='false'
-        sleep 3
-        continue
+		singlestat="$check_ok"
+	elif [ "$singleuser" = "false" ]; then
+		singleuser='true'
+		singlestat="$check_ok"
 	fi
-	shopt -u nocasematch
 
   elif [ "$key4" = "s" ]; then
   echo ""
@@ -930,7 +905,6 @@ printf $green"$header"$reset
 echo ""
 echo ""
 echo -en "Do you want to setup additional Apps (y/n)? ";appsinstall=$(readOne)
-   #read -e -p "Do you want to setup additional Apps (y/n)? " appsinstall
    if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
 
 #################################
@@ -955,7 +929,7 @@ echo ""
   echo "--------------------------------------------------------------------"
   echo "                    Setup Apps"
   echo "------+------------+----------------+-------------------------------"
-  echo "  Nr. |   Status   |                |    value"
+  echo "  Nr. |   Status   |            app |    value"
   echo "------+------------+----------------+-------------------------------"
   printf "  1   |  $contactsstat   |      contacts: |     "$contactsinstall"\n"
   printf "  2   |  $calendarstat   |      calendar: |     "$calendarinstall"\n"
@@ -969,94 +943,57 @@ echo ""
   echo -en "Enter [1-6], [s] or [q]: ";key5=$(readOne)
 
 if [ "$key5" = "1" ]; then
-	echo ""
-  	echo -n "Type true or false: "
-	read contactsinstall
-
-	# Check for correct input
-	if [ "$contactsinstall" = "true" ] || [ "$contactsinstall" = "false" ]; then
-		[  -z "$contactsinstall" ] && contactsstat="$check_miss" || contactsstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Type true or false..."$reset
+	if [ "$contactsinstall" = "true" ]; then
+		contactsinstall='false'
+		contactsstat="$check_ok"
+	elif [ "$contactsinstall" = "false" ]; then
 		contactsinstall='true'
-        sleep 3
-        continue
+		contactsstat="$check_ok"
 	fi
 
-
   elif [ "$key5" = "2" ]; then
-  echo ""
-	echo -n "Type true or false: "
-	read calendarinstall
-
-	# Check for correct input
-	if [ "$calendarinstall" = "true" ] || [ "$calendarinstall" = "false" ]; then
-		[  -z "$calendarinstall" ] && calendarstat="$check_miss" || calendarstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Type true or false..."$reset
+	if [ "$calendarinstall" = "true" ]; then
+		calendarinstall='false'
+		calendarstat="$check_ok"
+	elif [ "$calendarinstall" = "false" ]; then
 		calendarinstall='true'
-        sleep 3
-        continue
+		calendarstat="$check_ok"
 	fi
 
   elif [ "$key5" = "3" ]; then
-  echo ""
-	echo -n "Type true or false: "
-	read mailinstall
-	
-	# Check for correct input
-	if [ "$mailinstall" = "true" ] || [ "$mailinstall" = "false" ]; then
-		[  -z "$mailinstall" ] && mailstat="$check_miss" || mailstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Type true or false..."$reset
+	if [ "$mailinstall" = "true" ]; then
+		mailinstall='false'
+		mailstat="$check_ok"
+	elif [ "$mailinstall" = "false" ]; then
 		mailinstall='true'
-        sleep 3
-        continue
+		mailstat="$check_ok"
 	fi
 
   elif [ "$key5" = "4" ]; then
-  echo ""
-	echo -n "Type true or false: "
-	read notesinstall
-
-	# Check for correct input
-	if [ "$notesinstall" = "true" ] || [ "$notesinstall" = "false" ]; then
-		[  -z "$notesinstall" ] && notesstat="$check_miss" || notesstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Type true or false..."$reset
+	if [ "$notesinstall" = "true" ]; then
+		notesinstall='false'
+		notesstat="$check_ok"
+	elif [ "$notesinstall" = "false" ]; then
 		notesinstall='true'
-        sleep 3
-        continue
+		notesstat="$check_ok"
 	fi
 
   elif [ "$key5" = "5" ]; then
-  echo ""
-	echo -n "Type true or false: "
-	read tasksinstall
-
-	# Check for correct input
-	if [ "$tasksinstall" = "true" ] || [ "$tasksinstall" = "false" ]; then
-		[  -z "$tasksinstall" ] && tasksstat="$check_miss" || tasksstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Type true or false..."$reset
+	if [ "$tasksinstall" = "true" ]; then
+		tasksinstall='false'
+		tasksstat="$check_ok"
+	elif [ "$tasksinstall" = "false" ]; then
 		tasksinstall='true'
-        sleep 3
-        continue
+		tasksstat="$check_ok"
 	fi
 
   elif [ "$key5" = "6" ]; then
-  echo ""
-	echo -n "Type true or false: "
-	read galleryinstall
-
-	# Check for correct input
-	if [ "$galleryinstall" = "true" ] || [ "$galleryinstall" = "false" ]; then
-		[  -z "$galleryinstall" ] && gallerystat="$check_miss" || gallerystat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Type true or false..."$reset
+	if [ "$galleryinstall" = "true" ]; then
+		galleryinstall='false'
+		gallerystat="$check_ok"
+	elif [ "$galleryinstall" = "false" ]; then
 		galleryinstall='true'
-        sleep 3
-        continue
+		gallerystat="$check_ok"
 	fi
 
 	elif [ "$key5" = "s" ]; then
@@ -1457,9 +1394,8 @@ sleep 2
 #################
 ##  ENDSCREEN  ##
 #################
-pwdtxt=$(pwd)
 
-touch $pwdtxt/nextcloud_passwords.txt
+touch /root/nextcloud_passwords.txt
 # Store the passwords
 {
 echo "URL     		: $url"
@@ -1470,7 +1406,7 @@ echo "Database type		: $dbtype"
 echo "Database name		: $dbname"
 echo "Database user		: $dbuser"
 echo "Database password	: $dbpwd"
-} > $pwdtxt/nextcloud_passwords.txt
+} > /root/nextcloud_passwords.txt
 
 {
 clear
@@ -1488,7 +1424,7 @@ echo " Database type		: $dbtype"
 echo " Database name		: $dbname"
 echo " Database user		: $dbuser"
 echo " Database password	: $dbpwd"
-echo "   (theses passwords are saved in $pwdtxt/nextcloud_passwords.txt)"
+echo "   (theses passwords are saved in /root/nextcloud_passwords.txt)"
 echo "###################################################################"
 echo ""
 printf $green"Navigate to $url and enjoy Nextcloud!\n"$reset
