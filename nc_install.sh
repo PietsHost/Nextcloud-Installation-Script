@@ -544,7 +544,7 @@ done
 stty -echo
 standardpath=$html/nextcloud
 ncpath=$html/$folder
-
+sleep 1
 #################################
 ######   Setup Page 1 End   #####
 #################################
@@ -697,6 +697,7 @@ stty echo
         	sleep 3
         	continue
         else
+			echo ""
         	echo "-----------------------------"
         break
         fi
@@ -714,6 +715,7 @@ echo ""
 	printf "Skipping SMTP Setup..."
 	sleep 2
 fi
+sleep 1
 ###############################
 ######   SMTP-Setup End   #####
 ###############################
@@ -805,6 +807,7 @@ stty echo
         	sleep 3
         	continue
         else
+			echo ""
         	echo "-----------------------------"
         break
         fi
@@ -814,6 +817,7 @@ stty echo
     exit
   fi
 done
+sleep 1
 #################################
 ######   Setup Page 2 End   #####
 #################################
@@ -839,7 +843,7 @@ stty echo
   printf "  3   |  $memstat   |                     Memcache: | "$memcache"\n"
   printf "  4   |  $maintstat   |             maintenance mode: | "$maintenance"\n"
   printf "  5   |  $singlestat   |              singleuser mode: | "$singleuser"\n"
-  printf "  6   |  $skeletonstat   |           skeleton directory: | "$skeleton"\n"
+  printf "  6   |  $skeletonstat   |    custom skeleton directory: | "$skeleton"\n"
   echo "------+------------+-------------------------------+---------------------------------"
   printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
@@ -939,6 +943,7 @@ stty echo
 			sleep 3
         	continue
         else
+			echo ""
         	echo "-----------------------------"
         break
         fi
@@ -1529,8 +1534,12 @@ if [[ "$installed" == "yes" ]] ; then
 		echo -en "Do you want to restart your server now (y/n)? ";rsn=$(readOne)
 		echo ""
         case $rsn in
-            [Yy]* ) break;;
-            [Nn]* ) exit;
+            [Yy]* )
+			stty echo
+			break;;
+            [Nn]* )
+			stty echo
+			exit;
         esac
     done
     shutdown -r now
