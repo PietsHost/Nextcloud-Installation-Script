@@ -43,7 +43,9 @@ memcache='APCu'
 maintenance='false'
 singleuser='false'
 skeleton='none'
-
+default_language='de'
+enable_avatars='true'
+rewritebase='false'
 ################################
 ######   DEFAULT VAR END   #####
 ################################
@@ -180,6 +182,9 @@ function check(){
 [  -z "$maintenance" ] && maintstat="$check_miss" || maintstat="$check_ok"
 [  -z "$singleuser" ] && singlestat="$check_miss" || singlestat="$check_ok"
 [  -z "$skeleton" ] && skeletonstat="$check_miss" || skeletonstat="$check_ok"
+[  -z "$default_language" ] && langstat="$check_miss" || langstat="$check_ok"
+[  -z "$enable_avatars" ] && enavastat="$check_miss" || enavastat="$check_ok"
+[  -z "$rewritebase" ] && rewritestat="$check_miss" || rewritestat="$check_ok"
 }
 
 function checkapps(){
@@ -495,7 +500,7 @@ echo ""
 
 	# Check for correct input
 	if [[ -d $html ]]; then
-    [  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
+    [ -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
 	else
 		printf $redbg"Wrong input format or choosen directory does not exist..."$reset
 		html='/var/www/html'
@@ -508,7 +513,7 @@ echo ""
   stty echo
 	echo -n "Enter folder name (Leave empty, if you want to install to root directory): "
 	read folder
-	[  "$folder" ] && folderstat="$check_ok"
+	[ "$folder" ] && folderstat="$check_ok"
 
   elif [ "$key1" = "5" ]; then
   echo ""
@@ -522,7 +527,7 @@ echo ""
   stty echo
 	echo -n "Enter Database-Host (e.g. localhost): "
 	read dbhost
-	[  -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
+	[ -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
 
   elif [ "$key1" = "s" ]; then
   stty echo
@@ -844,10 +849,13 @@ stty echo
   printf "  4   |  $maintstat   |             maintenance mode: | "$maintenance"\n"
   printf "  5   |  $singlestat   |              singleuser mode: | "$singleuser"\n"
   printf "  6   |  $skeletonstat   |    custom skeleton directory: | "$skeleton"\n"
+  printf "  7   |  $skeletonstat   |             default language: | "$default_language"\n"
+  printf "  8   |  $skeletonstat   |               enable avatars: | "$enable_avatars"\n"
+  printf "  9   |  $skeletonstat   |                  pretty URLs: | "$rewritebase"\n"
   echo "------+------------+-------------------------------+---------------------------------"
-  printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+  printf "Type [1-9] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-6], [s] or [q]: ";key4=$(readOne)
+  echo -en "Enter [1-9], [s] or [q]: ";key4=$(readOne)
 
   if [ "$key4" = "1" ]; then
   if [ "$displayname" = "true" ]; then
@@ -934,6 +942,31 @@ stty echo
 			continue
 		fi
 	fi
+
+	elif [ "$key4" = "7" ]; then
+	echo ""
+	stty echo
+	echo -n "Enter default language (e.g. de, en, fr, etc..): "
+	read default_language
+	[  -z "$default_language" ] && langstat="$check_miss" || langstat="$check_ok"	
+
+	elif [ "$key4" = "8" ]; then
+	if [ "$enable_avatars" = "true" ]; then
+		enable_avatars='false'
+		enavastat="$check_ok"
+	elif [ "$enable_avatars" = "false" ]; then
+		enable_avatars='true'
+		enavastat="$check_ok"
+	fi
+
+	elif [ "$key4" = "9" ]; then
+	if [ "$rewritebase" = "true" ]; then
+		rewritebase='false'
+		rewritestat="$check_ok"
+	elif [ "$rewritebase" = "false" ]; then
+		rewritebase='true'
+		rewritestat="$check_ok"
+	fi	
 
   elif [ "$key4" = "s" ]; then
   echo ""
@@ -1072,6 +1105,12 @@ if [ "$key5" = "1" ]; then
 done
 
 else
+contactsinstall='false'
+calendarinstall='false'
+mailinstall='false'
+notesinstall='false'
+tasksinstall='false'
+galleryinstall'false'
 	clear
 printf $green"$header"$reset"\n"
 echo ""
@@ -1345,7 +1384,7 @@ chmod +x ${ncpath}/occ
 if [ -f ${ncpath}/.htaccess ]
  then
   chmod 0644 ${ncpath}/.htaccess
-  chown ${rootuser}:${htgroup} ${ncpath}/.htaccess
+  chown ${htuser}:${htgroup} ${ncpath}/.htaccess
 fi
 if [ -f ${ncpath}/data/.htaccess ]
  then
@@ -1426,6 +1465,7 @@ while true; do progress; done &
 	if [[ "$galleryinstall" = "true" ]]; then galleryinstall; fi
 
 	sudo -u ${htuser} php $ncpath/occ user:setting $adminuser settings email "$email"
+	sudo -u ${htuser} php $ncpath/occ config:system:set default_language --value "$default_language"
 
 	# Set SMTP
 	if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
@@ -1442,11 +1482,30 @@ while true; do progress; done &
 	fi
 
 	# Check for custom skeleton directory
-	if [ "$skeleton" = "none" ]; then echo "";
+	if [[ "$skeleton" = "none" ]]; then echo "";
 	else
 	sudo -u ${htuser} php $ncpath/occ config:system:set skeletondirectory --value "$skeleton"
 	fi
 
+	# Check for enable avatars
+	if [[ "$enable_avatars" = "true" ]]; then
+	sudo -u ${htuser} php $ncpath/occ config:system:set enable_avatars --value 'true'
+	fi
+
+	if [[ -n "$folder" ]]; then
+		rewritevalue="/$folder"
+	else
+		rewritevalue='/'
+	fi
+	
+	# Check for pretty URLs
+	if [[ "$rewritebase" = "true" ]]; then
+		sudo -u ${htuser} php $ncpath/occ config:system:set htaccess.RewriteBase --value "$rewritevalue"
+		sudo -u ${htuser} php $ncpath/occ maintenance:update:htaccess
+	fi
+
+	# remove config.sample.php
+	rm -f $ncpath/config/config.sample.php
 echo ""
 sleep 2
 	} &> /dev/null
@@ -1463,6 +1522,12 @@ sleep 2
 #################
 ##  ENDSCREEN  ##
 #################
+
+# Check for pretty URLs
+if [[ "$rewritebase" = "true" ]]; then
+len=${#url}-10
+url="${url:0:$len}"
+fi
 
 touch /root/${ncname}_passwords.txt
 # Store the passwords
