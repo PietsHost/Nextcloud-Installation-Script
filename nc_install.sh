@@ -11,7 +11,8 @@
 #
 
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
-
+# disable user input
+stty -echo
 ##################################
 ######   DEFAULT VAR START   #####
 ##################################
@@ -41,7 +42,7 @@ rlchannel='stable'
 memcache='APCu'
 maintenance='false'
 singleuser='false'
-
+skeleton='none'
 
 ################################
 ######   DEFAULT VAR END   #####
@@ -192,11 +193,13 @@ function checkapps(){
 
 # autoinput on keypress
 readOne () {
+	stty echo
     local oldstty
     oldstty=$(stty -g)
     stty -icanon -echo min 1 time 0
     dd bs=1 count=1 2>/dev/null
     stty "$oldstty"
+	stty -echo
 }
 
 function contactsinstall {
@@ -365,6 +368,12 @@ notes_repo=https://github.com/nextcloud/notes/releases/download
 ######   INITIALIZATION    ######
 #################################
 
+# enable user input
+stty echo
+
+# clear user input 
+read -t 1 -n 100 discard
+
 clear
 printf $green"$header"$reset
 echo ""
@@ -393,13 +402,14 @@ echo ""
   echo "------+------------------------------------------+------"
   echo "      |                                          |"
   echo "------+------------------------------------------+------"
+
 read -n1 -r -p "      |   Press any key to continue...           | " key
 
 if [ "$key" = '' ]; then
 	return
 fi
 echo ""
-
+stty -echo
 clear
 printf $green"$header"$reset
 echo ""
@@ -420,6 +430,7 @@ folder='nextcloud1'
 regex='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
 regexmail="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
 regexhttps='(https|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
+stty echo
 
 check
 clear
@@ -449,6 +460,7 @@ echo ""
 
   if [ "$key1" = "1" ]; then
   echo ""
+  stty echo
   	echo -n "Enter url (with http:// or https://): "
 	read url1
 
@@ -470,12 +482,14 @@ echo ""
 
   elif [ "$key1" = "2" ]; then
   echo ""
+  stty echo
 	echo -n "Enter name: "
 	read ncname
 	[  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
 
   elif [ "$key1" = "3" ]; then
   echo ""
+  stty echo
 	echo -n "Enter html-directory (e.g. /var/www/html): "
 	read html
 
@@ -491,37 +505,43 @@ echo ""
 
   elif [ "$key1" = "4" ]; then
   echo ""
+  stty echo
 	echo -n "Enter folder name (Leave empty, if you want to install to root directory): "
 	read folder
 	[  "$folder" ] && folderstat="$check_ok"
 
   elif [ "$key1" = "5" ]; then
   echo ""
+  stty echo
 	echo -n "Enter Database-Type (e.g. mysql, sqlite, etc.): "
 	read dbtype
 	[  -z "$dbtype" ] && dbtypestat="$check_miss" || dbtypestat="$check_ok"
 
-  elif [ "$key1" = "7" ]; then
+  elif [ "$key1" = "6" ]; then
   echo ""
+  stty echo
 	echo -n "Enter Database-Host (e.g. localhost): "
 	read dbhost
 	[  -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
 
   elif [ "$key1" = "s" ]; then
+  stty echo
         if [ -z "$url1" ] || [ -z "$ncname" ] || [ -z "$html" ] || [ -z "$dbtype" ] || [ -z "$dbhost" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
         	sleep 3
         	continue
         else
+			echo ""
         	echo "-----------------------------"
         break
         fi
   elif [ "$key1" = "q" ]; then
   echo ""
+  stty echo
     exit
   fi
 done
-
+stty -echo
 standardpath=$html/nextcloud
 ncpath=$html/$folder
 
@@ -547,6 +567,7 @@ else
 	echo ""
 	sleep 2
 fi
+stty echo
 
 # ask for SMTP-Setup
 clear
@@ -566,7 +587,7 @@ while true; do
 printf $green"$header"$reset
 echo ""
 echo ""
-
+stty echo
   echo "--------------------------------------------------------------------------"
   echo "                    Setup SMTP"
   echo "------+------------+-----------------+------------------------------------"
@@ -587,18 +608,21 @@ echo ""
 
   if [ "$key2" = "1" ]; then
   echo ""
+  stty echo
   	echo -n "Enter Auth-Type (LOGIN, PLAIN, etc): "
 	read smtpauth
     [  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
 
   elif [ "$key2" = "2" ]; then
   echo ""
+  stty echo
 	echo -n "Enter SMTP-Host (e.g. yourdomain.com): "
 	read smtphost
 	[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
 
   elif [ "$key2" = "3" ]; then
   echo ""
+  stty echo
 	echo -n "Enter SMTP-Port (default :587): "
 	read smtpport
 
@@ -614,18 +638,21 @@ echo ""
 
   elif [ "$key2" = "4" ]; then
   echo ""
+  stty echo
 	echo -n "Enter SMTP-Sendername (e.g. admin, info, etc): "
 	read smtpname
 	[  -z "$smtpname" ] && smnamestat="$check_miss" || smnamestat="$check_ok"
 
   elif [ "$key2" = "5" ]; then
   echo ""
+  stty echo
 	echo -n "Enter SMTP-password: "
 	read smtppwd
 	[  -z "$smtppwd" ] && smpwdstat="$check_miss" || smpwdstat="$check_ok"
 
   elif [ "$key2" = "6" ]; then
   echo ""
+  stty echo
 	echo -n "Enter SMTP-Security (tls, ssl, none): "
 	read smtpsec
 
@@ -641,6 +668,7 @@ echo ""
 
   elif [ "$key2" = "7" ]; then
   echo ""
+  stty echo
 	echo -n "Is SMTP-Authentification required? (1 for yes - 0 for no): "
 	read smtpauthreq
 
@@ -656,12 +684,14 @@ echo ""
 
   elif [ "$key2" = "8" ]; then
   echo ""
+  stty echo
 	echo -n "Set SMTP sender Domain (e.g. yourdomain.com): "
 	read smtpdomain
 	[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
 
 
   elif [ "$key2" = "s" ]; then
+  stty echo
         if [ -z "$smtpauth" ] || [ -z "$smtphost" ] || [ -z "$smtpport" ] || [ -z "$smtpname" ] || [ -z "$smtppwd" ] || [ -z "$smtpsec" ] || [ -z "$smtpauthreq" ] || [ -z "$smtpdomain" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
         	sleep 3
@@ -672,6 +702,7 @@ echo ""
         fi
   elif [ "$key2" = "q" ]; then
   echo ""
+  stty echo
     exit
   fi
 done
@@ -697,6 +728,7 @@ while true; do
 printf $green"$header"$reset
 echo ""
 echo ""
+stty echo
   echo "--------------------------------------------------------------------------"
   echo "                    Setup			Page 2/3"
   echo "------+------------+------------------+------------------------------------"
@@ -705,7 +737,7 @@ echo ""
   printf "  1   |  $emailstat   |          E-Mail: | "$email"\n"
   printf "  2   |  $adusrstat   |  Admin Username: | "$adminuser"\n"
   echo ""
-  echo -e "  3   |  $dbrootstat   |Database Root-PW: | "$database_root"\n"
+  echo -e "  3   |  $dbrootstat   |Database Root-PW: | "$database_root
   echo ""
   printf "  4   |  $htusrstat   |        WWW User: | "$htuser"\n"
   printf "  5   |  $htgrpstat   |       WWW Group: | "$htgroup"\n"
@@ -717,6 +749,7 @@ echo ""
 
   if [ "$key3" = "1" ]; then
   echo ""
+  stty echo
   	echo -n "Enter your E-mail: "
 	read email
 
@@ -732,35 +765,41 @@ echo ""
 
   elif [ "$key3" = "2" ]; then
   echo ""
+  stty echo
 	echo -n "Please enter desired admin username for Nextcloud: "
 	read adminuser
 	[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
 
   elif [ "$key3" = "3" ]; then
   echo ""
+  stty echo
 	echo -n "Please enter password for database root account (won't be stored): "
 	read database_root
 	[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"	
 
   elif [ "$key3" = "4" ]; then
   echo ""
+  stty echo
 	echo -n "Enter WWW-User (e.g. apache, apache2, etc.): "
 	read htuser
 	[  -z "$htuser" ] && htusrstat="$check_miss" || htusrstat="$check_ok"
 
   elif [ "$key3" = "5" ]; then
   echo ""
+  stty echo
 	echo -n "Enter WWW-Group (e.g. apache, www-data, etc.): "
 	read htgroup
 	[  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
 
   elif [ "$key3" = "6" ]; then
   echo ""
+  stty echo
 	echo -n "Enter root user (usually: root): "
 	read rootuser
 	[  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
 
   elif [ "$key3" = "s" ]; then
+  stty echo
         if [ -z "$email" ] || [ -z "$htuser" ] || [ -z "$htgroup" ] || [ -z "$rootuser" ] || [ -z "$adminuser" ] || [ -z "$database_root" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
         	sleep 3
@@ -771,6 +810,7 @@ echo ""
         fi
   elif [ "$key3" = "q" ]; then
   echo ""
+  stty echo
     exit
   fi
 done
@@ -781,7 +821,6 @@ done
 ###################################
 ######   Setup Page 3 Start   #####
 ###################################
-skeleton='none'
 
 clear
 while true; do
@@ -789,18 +828,19 @@ while true; do
 printf $green"$header"$reset
 echo ""
 echo ""
+stty echo
   echo "--------------------------------------------------------------------------"
   echo "                    Setup			Page 3/3"
-  echo "------+------------+------------------+------------------------------------"
-  echo "  Nr. |   Status   |      description |    value"
-  echo "------+------------+------------------+------------------------------------"
-  printf "  1   |  $dpnamestat   |    Display name: | "$displayname"\n"
-  printf "  2   |  $rlchanstat   | Release Channel: | "$rlchannel"\n"
-  printf "  3   |  $memstat   |        Memcache: | "$memcache"\n"
-  printf "  4   |  $maintstat   |maintenance mode: | "$maintenance"\n"
-  printf "  5   |  $singlestat   | singleuser mode: | "$singleuser"\n"
-  printf "  6   |  $skeletonstat   |    skeleton dir: | "$skeleton"\n"
-  echo "------+------------+------------------+------------------------------------"
+  echo "------+------------+-------------------------------+-----------------------"
+  echo "  Nr. |   Status   |                   description |    value"
+  echo "------+------------+-------------------------------+-----------------------"
+  printf "  1   |  $dpnamestat   | allow change of display name: | "$displayname"\n"
+  printf "  2   |  $rlchanstat   |              Release Channel: | "$rlchannel"\n"
+  printf "  3   |  $memstat   |                     Memcache: | "$memcache"\n"
+  printf "  4   |  $maintstat   |             maintenance mode: | "$maintenance"\n"
+  printf "  5   |  $singlestat   |              singleuser mode: | "$singleuser"\n"
+  printf "  6   |  $skeletonstat   |           skeleton directory: | "$skeleton"\n"
+  echo "------+------------+-------------------------------+---------------------------------"
   printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
   echo -en "Enter [1-6], [s] or [q]: ";key4=$(readOne)
@@ -816,6 +856,7 @@ echo ""
 
   elif [ "$key4" = "2" ]; then
   echo ""
+  stty echo
 	echo -n "The channel that Nextcloud should use to look for updates (daily, beta, stable, production) "
 	read rlchannel
 
@@ -833,6 +874,7 @@ echo ""
 
   elif [ "$key4" = "3" ]; then
   echo ""
+  stty echo
 	echo -n "Do you want to use memcache? (none, APCu): "
 	read memcache
 
@@ -857,7 +899,7 @@ echo ""
 		maintstat="$check_ok"
 	fi
 
-  elif [ "$key4" = "5" ]; then	
+  elif [ "$key4" = "5" ]; then
 	if [ "$singleuser" = "true" ]; then
 		singleuser='false'
 		singlestat="$check_ok"
@@ -865,14 +907,16 @@ echo ""
 		singleuser='true'
 		singlestat="$check_ok"
 	fi
-	
-  elif [ "$key4" = "6" ]; then	
+
+  elif [ "$key4" = "6" ]; then
   echo ""
+  stty echo
 	echo -n "Enter custom skeleton directory or type none for default: "
 	read skeleton
-	
+
 	shopt -s nocasematch
 	if [ "$skeleton" = "none" ]; then
+		[  -z "$skeleton" ] && skeletonstat="$check_miss" || skeletonstat="$check_ok"
 		skeleton='none'
 	else
 		shopt -u nocasematch
@@ -889,6 +933,7 @@ echo ""
 
   elif [ "$key4" = "s" ]; then
   echo ""
+  stty echo
         if [ -z "$displayname" ] || [ -z "$rlchannel" ] || [ -z "$memcache" ] || [ -z "$maintenance" ] || [ -z "$singleuser" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
 			sleep 3
@@ -899,6 +944,7 @@ echo ""
         fi
   elif [ "$key4" = "q" ]; then
   echo ""
+  stty echo
     exit
   fi
 done
@@ -932,7 +978,7 @@ while true; do
 printf $green"$header"$reset
 echo ""
 echo ""
-
+stty echo
   echo "--------------------------------------------------------------------"
   echo "                    Setup Apps"
   echo "------+------------+----------------+-------------------------------"
@@ -1004,6 +1050,7 @@ if [ "$key5" = "1" ]; then
 	fi
 
 	elif [ "$key5" = "s" ]; then
+	stty echo
         if [ -z "$contactsinstall" ] || [ -z "$calendarinstall" ] || [ -z "$mailinstall" ] || [ -z "$notesinstall" ] || [ -z "$tasksinstall" ] || [ -z "$galleryinstall" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
         	sleep 3
@@ -1014,6 +1061,7 @@ if [ "$key5" = "1" ]; then
         fi
   elif [ "$key5" = "q" ]; then
   echo ""
+  stty echo
     exit
   fi
 done
@@ -1025,6 +1073,8 @@ echo ""
 	printf "Skipping Apps Setup..."
 	sleep 2
 fi
+stty -echo
+
 ###############################
 ######   Apps-Setup End   #####
 ###############################
@@ -1062,9 +1112,8 @@ then
 	sleep 1
 	exit 0
 else
+
 # Install Warning
-echo ""
-printf "!! Warning !!\n"
 echo ""
 echo "Performing install in 5 seconds.."
 echo ""
@@ -1466,15 +1515,17 @@ printf $green"Navigate to $url and enjoy Nextcloud!\n"$reset
 
 echo ""
 } &>/dev/tty
-
+stty echo
 ###############
 ##  RESTART  ##
 ###############
 
 # Restart server if desired
+read -t 1 -n 100 discard
 installed=yes
 if [[ "$installed" == "yes" ]] ; then
     while true; do
+	stty echo
 		echo -en "Do you want to restart your server now (y/n)? ";rsn=$(readOne)
 		echo ""
         case $rsn in
