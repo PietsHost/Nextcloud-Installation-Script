@@ -1,5 +1,5 @@
 # Nextcloud Installation Script
-📜 Easy automatic CLI-Installation of Nextcloud
+Easy automatic CLI-Installation of Nextcloud
 
 
 This script features an automatic installation of Nextcloud via CLI.<br /><br />
