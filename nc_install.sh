@@ -1309,6 +1309,14 @@ sleep 2
 # remove http:// and https:// from url to match trusted_domains requirements
 url2=${url1#*//}
 
+if [[ -n "$folder" ]]; then
+	dir="$ncpath/data"
+else
+	len=${#ncpath}-1
+	ncpath2="${ncpath:0:$len}"
+	dir="$ncpath2/data"
+fi
+
 AUTOCONFIG='$AUTOCONFIG'
 cat <<EOF > $ncpath/config/autoconfig.php
 <?php
@@ -1321,7 +1329,7 @@ $AUTOCONFIG = array(
 'dbtableprefix' => "",
 'adminlogin' => "$adminuser",
 'adminpass' => "$adminpwd",
-'directory' => "$ncpath/data",
+'directory' => "$dir",
 'trusted_domains' =>
   array (
     0 => "$url2",
