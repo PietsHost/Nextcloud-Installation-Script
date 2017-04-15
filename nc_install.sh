@@ -178,6 +178,7 @@ function check(){
 [  -z "$memcache" ] && memstat="$check_miss" || memstat="$check_ok"
 [  -z "$maintenance" ] && maintstat="$check_miss" || maintstat="$check_ok"
 [  -z "$singleuser" ] && singlestat="$check_miss" || singlestat="$check_ok"
+[  -z "$skeleton" ] && skeletonstat="$check_miss" || skeletonstat="$check_ok"
 }
 
 function checkapps(){
@@ -404,25 +405,6 @@ printf $green"$header"$reset
 echo ""
 echo ""
 
-# Check if Nextcloud is already installed installed.
-
-if [ -f "$ncpath/occ" ]; then
-	chmod +x $ncpath/occ
-	CURRENTVERSION=$(sudo -u $htuser php $ncpath/occ status | grep "versionstring" | awk '{print $3}')
-	echo ""
-    printf $redbg"Nextcloud is already installed...\n"$reset
-	echo ""
-	echo "If your version isn't up to date make use of the Piet's Host ncupdate-script."
-	echo ""
-	sleep 2
-    exit 0
-else
-	echo ""
-    printf $green"No Nextcloud installation found! Installing continues...\n"$reset
-	echo ""
-	sleep 2
-fi
-
 #################################
 ######   INITIALIZATION    ######
 #################################
@@ -476,7 +458,7 @@ echo ""
 		if [[ $url1 =~ $regexhttps ]]; then
 			printf $redbg"Make sure you have a valid SSL-Certificate or Nextcloud won't work as expected\n"$reset
 			sleep 4
-			echo "Press any key to continue..."
+			echo "Press Enter to continue..."
 			read x
 		fi
 	else
@@ -547,6 +529,25 @@ ncpath=$html/$folder
 ######   Setup Page 1 End   #####
 #################################
 
+# Check if Nextcloud is already installed installed.
+
+if [ -f "$ncpath/occ" ]; then
+	chmod +x $ncpath/occ
+	CURRENTVERSION=$(sudo -u $htuser php $ncpath/occ status | grep "versionstring" | awk '{print $3}')
+	echo ""
+    printf $redbg"Nextcloud is already installed...\n"$reset
+	echo ""
+	echo "If your version isn't up to date make use of the Piet's Host ncupdate-script."
+	echo ""
+	sleep 2
+    exit 0
+else
+	echo ""
+    printf $green"No Nextcloud installation found! Installing continues...\n"$reset
+	echo ""
+	sleep 2
+fi
+
 # ask for SMTP-Setup
 clear
 printf $green"$header"$reset
@@ -594,16 +595,7 @@ echo ""
   echo ""
 	echo -n "Enter SMTP-Host (e.g. yourdomain.com): "
 	read smtphost
-
-	# Check for correct input
-	if [[ $smtphost =~ $regex ]]; then
-		[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Enter a valid URL..."$reset
-		smtphost="yourdomain.com"
-        sleep 3
-        continue
-	fi
+	[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
 
   elif [ "$key2" = "3" ]; then
   echo ""
@@ -666,16 +658,8 @@ echo ""
   echo ""
 	echo -n "Set SMTP sender Domain (e.g. yourdomain.com): "
 	read smtpdomain
+	[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
 
-	# Check for correct input
-	if [[ $smtpdomain =~ $regex ]]; then
-		[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Enter a valid URL..."$reset
-		smtpdomain="yourdomain.com"
-        sleep 3
-        continue
-	fi
 
   elif [ "$key2" = "s" ]; then
         if [ -z "$smtpauth" ] || [ -z "$smtphost" ] || [ -z "$smtpport" ] || [ -z "$smtpname" ] || [ -z "$smtppwd" ] || [ -z "$smtpsec" ] || [ -z "$smtpauthreq" ] || [ -z "$smtpdomain" ]; then
@@ -721,7 +705,7 @@ echo ""
   printf "  1   |  $emailstat   |          E-Mail: | "$email"\n"
   printf "  2   |  $adusrstat   |  Admin Username: | "$adminuser"\n"
   echo ""
-  printf "  3   |  $dbrootstat   |Database Root-PW: | "$database_root"\n"
+  echo -e "  3   |  $dbrootstat   |Database Root-PW: | "$database_root"\n"
   echo ""
   printf "  4   |  $htusrstat   |        WWW User: | "$htuser"\n"
   printf "  5   |  $htgrpstat   |       WWW Group: | "$htgroup"\n"
@@ -797,6 +781,7 @@ done
 ###################################
 ######   Setup Page 3 Start   #####
 ###################################
+skeleton='none'
 
 clear
 while true; do
@@ -814,10 +799,11 @@ echo ""
   printf "  3   |  $memstat   |        Memcache: | "$memcache"\n"
   printf "  4   |  $maintstat   |maintenance mode: | "$maintenance"\n"
   printf "  5   |  $singlestat   | singleuser mode: | "$singleuser"\n"
+  printf "  6   |  $skeletonstat   |    skeleton dir: | "$skeleton"\n"
   echo "------+------------+------------------+------------------------------------"
-  printf "Type [1-5] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+  printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-5], [s] or [q]: ";key4=$(readOne)
+  echo -en "Enter [1-6], [s] or [q]: ";key4=$(readOne)
 
   if [ "$key4" = "1" ]; then
   if [ "$displayname" = "true" ]; then
@@ -878,6 +864,27 @@ echo ""
 	elif [ "$singleuser" = "false" ]; then
 		singleuser='true'
 		singlestat="$check_ok"
+	fi
+	
+  elif [ "$key4" = "6" ]; then	
+  echo ""
+	echo -n "Enter custom skeleton directory or type none for default: "
+	read skeleton
+	
+	shopt -s nocasematch
+	if [ "$skeleton" = "none" ]; then
+		skeleton='none'
+	else
+		shopt -u nocasematch
+		# Check for correct input
+		if [[ -d $skeleton ]]; then
+			[  -z "$skeleton" ] && skeletonstat="$check_miss" || skeletonstat="$check_ok"
+		else
+			printf $redbg"Wrong input format or choosen directory does not exist..."$reset
+			skeleton='none'
+			sleep 3
+			continue
+		fi
 	fi
 
   elif [ "$key4" = "s" ]; then
@@ -1366,18 +1373,26 @@ while true; do progress; done &
 
 	sudo -u ${htuser} php $ncpath/occ user:setting $adminuser settings email "$email"
 
+	# Set SMTP
 	if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_from_address --value 'admin'
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpmode --value 'smtp'
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_domain --value "$smtpdomain"
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpauthtype --value "$smtpauth"
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpauth --value "$smtpauthreq"
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtphost --value "$smtphost"
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpport --value "$smtpport"
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpname --value "$smtpname"
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtppassword --value "$smtppwd"
-	sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpsecure --value "$smtpsec"
-fi
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_from_address --value 'admin'
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpmode --value 'smtp'
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_domain --value "$smtpdomain"
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpauthtype --value "$smtpauth"
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpauth --value "$smtpauthreq"
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtphost --value "$smtphost"
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpport --value "$smtpport"
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpname --value "$smtpname"
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtppassword --value "$smtppwd"
+		sudo -u ${htuser} php $ncpath/occ config:system:set mail_smtpsecure --value "$smtpsec"
+	fi
+
+	# Check for custom skeleton directory
+	if [ "$skeleton" = "none" ]; then echo "";
+	else
+	sudo -u ${htuser} php $ncpath/occ config:system:set skeletondirectory --value "$skeleton"
+	fi
+
 echo ""
 sleep 2
 	} &> /dev/null
@@ -1395,7 +1410,7 @@ sleep 2
 ##  ENDSCREEN  ##
 #################
 
-touch /root/nextcloud_passwords.txt
+touch /root/${ncname}_passwords.txt
 # Store the passwords
 {
 echo "URL     		: $url"
@@ -1406,7 +1421,7 @@ echo "Database type		: $dbtype"
 echo "Database name		: $dbname"
 echo "Database user		: $dbuser"
 echo "Database password	: $dbpwd"
-} > /root/nextcloud_passwords.txt
+} > /root/${ncname}_passwords.txt
 
 {
 clear
@@ -1424,7 +1439,8 @@ echo " Database type		: $dbtype"
 echo " Database name		: $dbname"
 echo " Database user		: $dbuser"
 echo " Database password	: $dbpwd"
-echo "   (theses passwords are saved in /root/nextcloud_passwords.txt)"
+echo ""
+echo "   (theses passwords are saved in /root/${ncname}_passwords.txt)"
 echo "###################################################################"
 echo ""
 printf $green"Navigate to $url and enjoy Nextcloud!\n"$reset
