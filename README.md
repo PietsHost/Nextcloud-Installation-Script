@@ -23,6 +23,15 @@ chmod +x ./nc_install.sh
 ./nc_install.sh
 ```
 
+**Older Version**
+This script supports the installation of older Nextcloud-Version.<br />
+Keep in mind, that older version may be vulnerable due to security gaps
+
+If you want to install v9.0.53 for example, use:
+```
+./nc_install.sh -v 9.0.53
+```
+
 ## Notes
 * Tested on CentOS 6.8 & 7.3
 * Tested on openSUSE Leap 42.1
