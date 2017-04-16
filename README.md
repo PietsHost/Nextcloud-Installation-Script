@@ -23,14 +23,20 @@ chmod +x ./nc_install.sh
 ./nc_install.sh
 ```
 
-**Older Version**<br />
-This script supports the installation of older Nextcloud-Versions.<br />
-Keep in mind, that older version may be vulnerable due to security gaps
+## Usage of script arguments
 
-If you want to install v9.0.53 for example, use:
-```
-./nc_install.sh -v 9.0.53
-```
+ You can specify some variables before script run.<br />
+ E.g. you can set the Nextcloud version or the <br />
+ MySQL root password. If no option is set, the<br />
+ script will use default variables.<br />
+
+	-h --help   	display this help and exit
+	-v --version	specify Nextcloud Version (e.g. 10.0.0)
+	-d --database	sets the MySQL root password. Type -d "P@s§"
+	-n --name		sets the Nextcloud name, used for Database
+
+If you want to install v9.0.53 for example, use:<br />
+`./nc_install.sh -v 9.0.53` or `./nc_install.sh --version 9.0.53`
 
 ## Notes
 * Tested on CentOS 6.8 & 7.3
