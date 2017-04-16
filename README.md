@@ -30,10 +30,15 @@ chmod +x ./nc_install.sh
  MySQL root password. If no option is set, the<br />
  script will use default variables.<br />
 
-	-h --help   	display this help and exit
+	-h --help	display this help and exit
 	-v --version	specify Nextcloud Version (e.g. 10.0.0)
-	-d --database	sets the MySQL root password. Type -d "P@sยง"
-	-n --name		sets the Nextcloud name, used for Database
+	-p --password	sets the MySQL root password. Type -d "P@s§"
+	-n --name	sets the Nextcloud name, used for Database
+	-u --url	sets the URL for Nextcloud installation
+	-d --directory	sets the full installation path
+	-f --folder sets the desired folder (example.com/folder). May be empty
+	-s --smtp	setup SMTP during script run (no argument required)
+	-a --apps setup additionals apps during run (no argument required)
 
 If you want to install v9.0.53 for example, use:<br />
 `./nc_install.sh -v 9.0.53` or `./nc_install.sh --version 9.0.53`

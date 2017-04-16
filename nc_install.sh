@@ -27,6 +27,8 @@ ncname=nextcloud1
 dbhost=localhost
 dbtype=mysql
 rootuser='root'
+html='/var/www/html' # full installation path
+folder='nextcloud1'
 
 # E-mail
 email="mail@example.com"
@@ -47,6 +49,7 @@ skeleton='none'
 default_language='de'
 enable_avatars='true'
 rewritebase='false'
+
 ################################
 ######   DEFAULT VAR END   #####
 ################################
@@ -64,16 +67,22 @@ ugreen='\e[4;32m'
 show_help() {
 cat << EOF
 
- Usage: ${0##*/} [-hvdn] [-v VERSION]...
+ Usage: ${0##*/} [-v VERSION] [-n NAME]...
  You can specify some variables before script run.
- E.g. you can set the Nextcloud version or the 
+ E.g. you can set the Nextcloud version or the
  MySQL root password. If no option is set, the
  script will use default variables.
 
-	-h --help   	display this help and exit
+	-h --help	display this help and exit
 	-v --version	specify Nextcloud Version (e.g. 10.0.0)
-	-d --database	sets the MySQL root password. Type -d "P@s§"
-	-n --name		sets the Nextcloud name, used for Database
+	-p --password	sets the MySQL root password. Type -d "P@s§"
+	-n --name	sets the Nextcloud name, used for Database
+	-u --url	sets the URL for Nextcloud installation
+	-d --directory	sets the full installation path
+	-f --folder sets the desired folder (example.com/folder). May be empty
+	-s --smtp	setup SMTP during script run (no argument required)
+	-a --apps setup additionals apps during run (no argument required)
+	
 EOF
 }
 
@@ -95,13 +104,13 @@ while :; do
                 exit 1
             fi
             ;;
-        -d|--database)
+        -p|--password)
 		echo "$database_root"
 			if [ -n "$2" ]; then
 				database_root="$2"
 				shift
 			else
-                printf $redbg'ERROR: "--database" requires a non-empty option argument.' >&2
+                printf $redbg'ERROR: "--password" requires a non-empty option argument.' >&2
 				printf $reset"\n"
 				stty echo
                 exit 1
@@ -117,6 +126,40 @@ while :; do
 				stty echo
                 exit 1
             fi
+            ;;
+		-u|--url)
+			if [ -n "$2" ]; then
+				url1="$2"
+				shift
+			else
+                printf $redbg'ERROR: "--url" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+            ;;
+		-d|--directory)
+			if [ -n "$2" ]; then
+				html="$2"
+				shift
+			else
+                printf $redbg'ERROR: "--directory" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+            ;;
+		-f|--folder)
+				folder="$2"
+				shift
+            ;;
+		-s|--smtp)
+				smtp="y"
+				shift
+            ;;
+		-a|--apps)
+				appsinstall="y"
+				shift
             ;;
         --)              # End of all options.
             shift
@@ -233,11 +276,11 @@ fi
 #################################
 
 # Check Status on startup
+folderstat="$check_ok"
 function check(){
 [  -z "$url1" ] && domainstat="$check_miss" || domainstat="$check_ok"
 [  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
 [  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
-[  "$folder" ] && folderstat="$check_ok"
 [  -z "$dbtype" ] && dbtypestat="$check_miss" || dbtypestat="$check_ok"
 [  -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
 [  -z "$email" ] && emailstat="$check_miss" || emailstat="$check_ok"
@@ -419,6 +462,256 @@ function progress () {
            sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------------>] working: ${s} secs.";
     done;
 }
+
+function smtpsetup(){
+clear
+while true; do
+  clear
+printf $green"$header"$reset
+echo ""
+echo ""
+stty echo
+  echo "--------------------------------------------------------------------------"
+  echo "                    Setup SMTP"
+  echo "------+------------+-----------------+------------------------------------"
+  echo "  Nr. |   Status   |     description |    value"
+  echo "------+------------+-----------------+------------------------------------"
+  printf "  1   |  $smauthstat   |      Auth-Type: | "$smtpauth"\n"
+  printf "  2   |  $smhoststat   |      SMTP-Host: | "$smtphost"\n"
+  printf "  3   |  $smportstat   |           Port: | "$smtpport"\n"
+  printf "  4   |  $smnamestat   |    Sender Name: | "$smtpname"\n"
+  printf "  5   |  $smpwdstat   |  SMTP-Password: | "$smtppwd"\n"
+  printf "  6   |  $smsecstat   |    SMTP-Secure: | "$smtpsec"\n"
+  printf "  7   |  $smauthreqstat   | Auth required?: | "$smtpauthreq"\n"
+  printf "  8   |  $smtpdomainstat   |    SMTP Domain: | "$smtpdomain"\n"
+  echo "------+------------+-----------------+------------------------------------"
+  printf "Type [1-8] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+  printf "${red}[q]${reset} Quit\n"
+  echo -en "Enter [1-8], [s] or [q]: ";key2=$(readOne)
+
+  if [ "$key2" = "1" ]; then
+  echo ""
+  stty echo
+  	echo -n "Enter Auth-Type (LOGIN, PLAIN, etc): "
+	read smtpauth
+    [  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
+
+  elif [ "$key2" = "2" ]; then
+  echo ""
+  stty echo
+	echo -n "Enter SMTP-Host (e.g. yourdomain.com): "
+	read smtphost
+	[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
+
+  elif [ "$key2" = "3" ]; then
+  echo ""
+  stty echo
+	echo -n "Enter SMTP-Port (default :587): "
+	read smtpport
+
+	# Check for correct input
+	while ! [[ "$smtpport" =~ ^[0-9]+$ ]]; do
+		printf $redbg"Wrong input format. Only numbers are supported...: "$reset
+		read smtpport
+	done
+	[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
+
+  elif [ "$key2" = "4" ]; then
+  echo ""
+  stty echo
+	echo -n "Enter SMTP-Sendername (e.g. admin, info, etc): "
+	read smtpname
+	[  -z "$smtpname" ] && smnamestat="$check_miss" || smnamestat="$check_ok"
+
+  elif [ "$key2" = "5" ]; then
+  echo ""
+  stty echo
+	echo -n "Enter SMTP-password: "
+	read smtppwd
+	[  -z "$smtppwd" ] && smpwdstat="$check_miss" || smpwdstat="$check_ok"
+
+  elif [ "$key2" = "6" ]; then
+  echo ""
+  stty echo
+	echo -n "Enter SMTP-Security (tls, ssl, none): "
+	read smtpsec
+
+	# Check for correct input
+	while ! [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; do
+		printf $redbg"Wrong input format. Type ssl, tls or none...: "$reset
+		read smtpsec
+	done
+	[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
+
+  elif [ "$key2" = "7" ]; then
+  if [ "$smtpauthreq" = "0" ]; then
+		smtpauthreq='1'
+		smauthreqstat="$check_ok"
+		printf $green"SMTP-Authentification enabled\n"$reset
+		sleep 1
+	elif [ "$smtpauthreq" = "1" ]; then
+		smtpauthreq='0'
+		smauthreqstat="$check_ok"
+		printf $red"SMTP-Authentification disabled\n"$reset
+		sleep 1
+	fi
+
+  elif [ "$key2" = "8" ]; then
+  echo ""
+  stty echo
+	echo -n "Set SMTP sender Domain (e.g. yourdomain.com): "
+	read smtpdomain
+	[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
+
+
+  elif [ "$key2" = "s" ]; then
+  stty echo
+        if [ -z "$smtpauth" ] || [ -z "$smtphost" ] || [ -z "$smtpport" ] || [ -z "$smtpname" ] || [ -z "$smtppwd" ] || [ -z "$smtpsec" ] || [ -z "$smtpauthreq" ] || [ -z "$smtpdomain" ]; then
+        	printf $redbg"One or more variables are undefined. Aborting..."$reset
+        	sleep 3
+        	continue
+        else
+			echo ""
+        	echo "-----------------------------"
+        break
+        fi
+  elif [ "$key2" = "q" ]; then
+  echo ""
+  stty echo
+    exit
+  fi
+done
+}
+
+function installapps(){
+# Apps
+contactsinstall='true'
+calendarinstall='true'
+mailinstall='false'
+notesinstall='false'
+tasksinstall='false'
+galleryinstall='false'
+
+checkapps
+
+clear
+while true; do
+  clear
+printf $green"$header"$reset
+echo ""
+echo ""
+stty echo
+  echo "--------------------------------------------------------------------"
+  echo "                    Setup Apps"
+  echo "------+------------+----------------+-------------------------------"
+  echo "  Nr. |   Status   |            app |    value"
+  echo "------+------------+----------------+-------------------------------"
+  printf "  1   |  $contactsstat   |      contacts: |     "$contactsinstall"\n"
+  printf "  2   |  $calendarstat   |      calendar: |     "$calendarinstall"\n"
+  printf "  3   |  $mailstat   |          mail: |     "$mailinstall"\n"
+  printf "  4   |  $notesstat   |         notes: |     "$notesinstall"\n"
+  printf "  5   |  $tasksstat   |         tasks: |     "$tasksinstall"\n"
+  printf "  6   |  $gallerystat   |       gallery: |     "$galleryinstall"\n"
+  echo "------+------------+----------------+-------------------------------"
+  printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+  printf "${red}[q]${reset} Quit\n"
+  echo -en "Enter [1-6], [s] or [q]: ";key5=$(readOne)
+
+if [ "$key5" = "1" ]; then
+	if [ "$contactsinstall" = "true" ]; then
+		contactsinstall='false'
+		contactsstat="$check_ok"
+		printf $red"contacts installation turned off\n"$reset
+		sleep 1
+	elif [ "$contactsinstall" = "false" ]; then
+		contactsinstall='true'
+		contactsstat="$check_ok"
+		printf $green"contacs installation turned on\n"$reset
+		sleep 1
+	fi
+
+  elif [ "$key5" = "2" ]; then
+	if [ "$calendarinstall" = "true" ]; then
+		calendarinstall='false'
+		calendarstat="$check_ok"
+		printf $red"calendar installation turned off\n"$reset
+		sleep 1
+	elif [ "$calendarinstall" = "false" ]; then
+		calendarinstall='true'
+		calendarstat="$check_ok"
+		printf $green"calendar installation turned on\n"$reset
+		sleep 1
+	fi
+
+  elif [ "$key5" = "3" ]; then
+	if [ "$mailinstall" = "true" ]; then
+		mailinstall='false'
+		mailstat="$check_ok"
+		printf $red"mail installation turned off\n"$reset
+		sleep 1
+	elif [ "$mailinstall" = "false" ]; then
+		mailinstall='true'
+		mailstat="$check_ok"
+		printf $green"mail installation turned on\n"$reset
+		sleep 1
+	fi
+
+  elif [ "$key5" = "4" ]; then
+	if [ "$notesinstall" = "true" ]; then
+		notesinstall='false'
+		notesstat="$check_ok"
+		printf $red"notes installation turned off\n"$reset
+		sleep 1
+	elif [ "$notesinstall" = "false" ]; then
+		notesinstall='true'
+		notesstat="$check_ok"
+		printf $green"notes installation turned on\n"$reset
+		sleep 1
+	fi
+
+  elif [ "$key5" = "5" ]; then
+	if [ "$tasksinstall" = "true" ]; then
+		tasksinstall='false'
+		tasksstat="$check_ok"
+		printf $red"tasks installation turned off\n"$reset
+		sleep 1
+	elif [ "$tasksinstall" = "false" ]; then
+		tasksinstall='true'
+		tasksstat="$check_ok"
+		printf $green"tasks installation turned on\n"$reset
+		sleep 1
+	fi
+
+  elif [ "$key5" = "6" ]; then
+	if [ "$galleryinstall" = "true" ]; then
+		galleryinstall='false'
+		gallerystat="$check_ok"
+		printf $red"gallery installation turned off\n"$reset
+		sleep 1
+	elif [ "$galleryinstall" = "false" ]; then
+		galleryinstall='true'
+		gallerystat="$check_ok"
+		printf $green"gallery installation turned on\n"$reset
+		sleep 1
+	fi
+
+	elif [ "$key5" = "s" ]; then
+	stty echo
+        if [ -z "$contactsinstall" ]; then
+        	printf $redbg"One or more variables are undefined. Aborting..."$reset
+        	sleep 3
+        	continue
+        else
+        	echo "-----------------------------"
+        break
+        fi
+  elif [ "$key5" = "q" ]; then
+  echo ""
+  stty echo
+    exit
+  fi
+done
+}
 ###############
 ##  NC APPS  ##
 ###############
@@ -508,8 +801,6 @@ echo ""
 ######   Setup Page 1 Start   #####
 ###################################
 
-html='/var/www/html' # full installation path
-folder='nextcloud1'
 regex='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
 regexmail="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
 regexhttps='(https|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
@@ -651,155 +942,6 @@ else
 	sleep 2
 fi
 stty echo
-
-# ask for SMTP-Setup
-clear
-printf $green"$header"$reset
-echo ""
-echo ""
-echo -en "Do you want to setup SMTP (y/n)? ";smtp=$(readOne)
-   if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
-
-#################################
-######   SMTP-Setup Start   #####
-#################################
-
-clear
-while true; do
-  clear
-printf $green"$header"$reset
-echo ""
-echo ""
-stty echo
-  echo "--------------------------------------------------------------------------"
-  echo "                    Setup SMTP"
-  echo "------+------------+-----------------+------------------------------------"
-  echo "  Nr. |   Status   |     description |    value"
-  echo "------+------------+-----------------+------------------------------------"
-  printf "  1   |  $smauthstat   |      Auth-Type: | "$smtpauth"\n"
-  printf "  2   |  $smhoststat   |      SMTP-Host: | "$smtphost"\n"
-  printf "  3   |  $smportstat   |           Port: | "$smtpport"\n"
-  printf "  4   |  $smnamestat   |    Sender Name: | "$smtpname"\n"
-  printf "  5   |  $smpwdstat   |  SMTP-Password: | "$smtppwd"\n"
-  printf "  6   |  $smsecstat   |    SMTP-Secure: | "$smtpsec"\n"
-  printf "  7   |  $smauthreqstat   | Auth required?: | "$smtpauthreq"\n"
-  printf "  8   |  $smtpdomainstat   |    SMTP Domain: | "$smtpdomain"\n"
-  echo "------+------------+-----------------+------------------------------------"
-  printf "Type [1-8] to change value or ${cyan}[s]${reset} to save and go to next page\n"
-  printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-8], [s] or [q]: ";key2=$(readOne)
-
-  if [ "$key2" = "1" ]; then
-  echo ""
-  stty echo
-  	echo -n "Enter Auth-Type (LOGIN, PLAIN, etc): "
-	read smtpauth
-    [  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
-
-  elif [ "$key2" = "2" ]; then
-  echo ""
-  stty echo
-	echo -n "Enter SMTP-Host (e.g. yourdomain.com): "
-	read smtphost
-	[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
-
-  elif [ "$key2" = "3" ]; then
-  echo ""
-  stty echo
-	echo -n "Enter SMTP-Port (default :587): "
-	read smtpport
-
-	# Check for correct input
-	while ! [[ "$smtpport" =~ ^[0-9]+$ ]]; do
-		printf $redbg"Wrong input format. Only numbers are supported...: "$reset
-		read smtpport
-	done
-	[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
-
-  elif [ "$key2" = "4" ]; then
-  echo ""
-  stty echo
-	echo -n "Enter SMTP-Sendername (e.g. admin, info, etc): "
-	read smtpname
-	[  -z "$smtpname" ] && smnamestat="$check_miss" || smnamestat="$check_ok"
-
-  elif [ "$key2" = "5" ]; then
-  echo ""
-  stty echo
-	echo -n "Enter SMTP-password: "
-	read smtppwd
-	[  -z "$smtppwd" ] && smpwdstat="$check_miss" || smpwdstat="$check_ok"
-
-  elif [ "$key2" = "6" ]; then
-  echo ""
-  stty echo
-	echo -n "Enter SMTP-Security (tls, ssl, none): "
-	read smtpsec
-
-	# Check for correct input
-	while ! [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; do
-	#if [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; then
-		printf $redbg"Wrong input format. Type ssl, tls or none...: "$reset
-		read smtpsec
-	done
-	[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
-	#else
-	#	printf $redbg"Wrong input format. Type ssl, tls or none..."$reset
-	#	smtpsec='tls'
-    #    sleep 3
-    #    continue
-	#fi
-
-  elif [ "$key2" = "7" ]; then
-  if [ "$smtpauthreq" = "0" ]; then
-		smtpauthreq='1'
-		smauthreqstat="$check_ok"
-		printf $green"SMTP-Authentification enabled\n"$reset
-		sleep 1
-	elif [ "$smtpauthreq" = "1" ]; then
-		smtpauthreq='0'
-		smauthreqstat="$check_ok"
-		printf $red"SMTP-Authentification disabled\n"$reset
-		sleep 1
-	fi
-
-  elif [ "$key2" = "8" ]; then
-  echo ""
-  stty echo
-	echo -n "Set SMTP sender Domain (e.g. yourdomain.com): "
-	read smtpdomain
-	[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
-
-
-  elif [ "$key2" = "s" ]; then
-  stty echo
-        if [ -z "$smtpauth" ] || [ -z "$smtphost" ] || [ -z "$smtpport" ] || [ -z "$smtpname" ] || [ -z "$smtppwd" ] || [ -z "$smtpsec" ] || [ -z "$smtpauthreq" ] || [ -z "$smtpdomain" ]; then
-        	printf $redbg"One or more variables are undefined. Aborting..."$reset
-        	sleep 3
-        	continue
-        else
-			echo ""
-        	echo "-----------------------------"
-        break
-        fi
-  elif [ "$key2" = "q" ]; then
-  echo ""
-  stty echo
-    exit
-  fi
-done
-
-else
-	clear
-printf $green"$header"$reset"\n"
-echo ""
-	printf "Skipping SMTP Setup..."
-	sleep 2
-fi
-sleep 1
-###############################
-######   SMTP-Setup End   #####
-###############################
 
 ###################################
 ######   Setup Page 2 Start   #####
@@ -1121,143 +1263,52 @@ done
 ######   Setup Page 3 End   #####
 #################################
 
-# ask for Apps-Setup
+#################################
+######   SMTP-Setup Start   #####
+#################################
+
+# ask for SMTP-Setup
 clear
 printf $green"$header"$reset
 echo ""
+if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
+	echo ""
+	smtpsetup
+else
+	echo ""
+	echo -en "Do you want to setup SMTP (y/n)? ";smtp=$(readOne)
+	if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
+	smtpsetup
+
+else
+	clear
+printf $green"$header"$reset"\n"
 echo ""
-echo -en "Do you want to setup additional Apps (y/n)? ";appsinstall=$(readOne)
-   if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
+	printf "Skipping SMTP Setup..."
+	sleep 2
+fi
+fi
+sleep 1
+###############################
+######   SMTP-Setup End   #####
+###############################
 
 #################################
 ######   Apps-Setup Start   #####
 #################################
-contactsinstall='true'
-calendarinstall='true'
-mailinstall='false'
-notesinstall='false'
-tasksinstall='false'
-galleryinstall='false'
 
-checkapps
-
+# ask for Apps-Setup
 clear
-while true; do
-  clear
 printf $green"$header"$reset
 echo ""
-echo ""
-stty echo
-  echo "--------------------------------------------------------------------"
-  echo "                    Setup Apps"
-  echo "------+------------+----------------+-------------------------------"
-  echo "  Nr. |   Status   |            app |    value"
-  echo "------+------------+----------------+-------------------------------"
-  printf "  1   |  $contactsstat   |      contacts: |     "$contactsinstall"\n"
-  printf "  2   |  $calendarstat   |      calendar: |     "$calendarinstall"\n"
-  printf "  3   |  $mailstat   |          mail: |     "$mailinstall"\n"
-  printf "  4   |  $notesstat   |         notes: |     "$notesinstall"\n"
-  printf "  5   |  $tasksstat   |         tasks: |     "$tasksinstall"\n"
-  printf "  6   |  $gallerystat   |       gallery: |     "$galleryinstall"\n"
-  echo "------+------------+----------------+-------------------------------"
-  printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
-  printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-6], [s] or [q]: ";key5=$(readOne)
-
-if [ "$key5" = "1" ]; then
-	if [ "$contactsinstall" = "true" ]; then
-		contactsinstall='false'
-		contactsstat="$check_ok"
-		printf $red"contacts installation turned off\n"$reset
-		sleep 1
-	elif [ "$contactsinstall" = "false" ]; then
-		contactsinstall='true'
-		contactsstat="$check_ok"
-		printf $green"contacs installation turned on\n"$reset
-		sleep 1
-	fi
-
-  elif [ "$key5" = "2" ]; then
-	if [ "$calendarinstall" = "true" ]; then
-		calendarinstall='false'
-		calendarstat="$check_ok"
-		printf $red"calendar installation turned off\n"$reset
-		sleep 1
-	elif [ "$calendarinstall" = "false" ]; then
-		calendarinstall='true'
-		calendarstat="$check_ok"
-		printf $green"calendar installation turned on\n"$reset
-		sleep 1
-	fi
-
-  elif [ "$key5" = "3" ]; then
-	if [ "$mailinstall" = "true" ]; then
-		mailinstall='false'
-		mailstat="$check_ok"
-		printf $red"mail installation turned off\n"$reset
-		sleep 1
-	elif [ "$mailinstall" = "false" ]; then
-		mailinstall='true'
-		mailstat="$check_ok"
-		printf $green"mail installation turned on\n"$reset
-		sleep 1
-	fi
-
-  elif [ "$key5" = "4" ]; then
-	if [ "$notesinstall" = "true" ]; then
-		notesinstall='false'
-		notesstat="$check_ok"
-		printf $red"notes installation turned off\n"$reset
-		sleep 1
-	elif [ "$notesinstall" = "false" ]; then
-		notesinstall='true'
-		notesstat="$check_ok"
-		printf $green"notes installation turned on\n"$reset
-		sleep 1
-	fi
-
-  elif [ "$key5" = "5" ]; then
-	if [ "$tasksinstall" = "true" ]; then
-		tasksinstall='false'
-		tasksstat="$check_ok"
-		printf $red"tasks installation turned off\n"$reset
-		sleep 1
-	elif [ "$tasksinstall" = "false" ]; then
-		tasksinstall='true'
-		tasksstat="$check_ok"
-		printf $green"tasks installation turned on\n"$reset
-		sleep 1
-	fi
-
-  elif [ "$key5" = "6" ]; then
-	if [ "$galleryinstall" = "true" ]; then
-		galleryinstall='false'
-		gallerystat="$check_ok"
-		printf $red"gallery installation turned off\n"$reset
-		sleep 1
-	elif [ "$galleryinstall" = "false" ]; then
-		galleryinstall='true'
-		gallerystat="$check_ok"
-		printf $green"gallery installation turned on\n"$reset
-		sleep 1
-	fi
-
-	elif [ "$key5" = "s" ]; then
-	stty echo
-        if [ -z "$contactsinstall" ]; then
-        	printf $redbg"One or more variables are undefined. Aborting..."$reset
-        	sleep 3
-        	continue
-        else
-        	echo "-----------------------------"
-        break
-        fi
-  elif [ "$key5" = "q" ]; then
-  echo ""
-  stty echo
-    exit
-  fi
-done
+if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
+	echo ""
+	installapps
+else
+	echo ""
+echo -en "Do you want to setup additional Apps (y/n)? ";appsinstall=$(readOne)
+	if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
+		installapps
 
 else
 contactsinstall='false'
@@ -1271,6 +1322,7 @@ printf $green"$header"$reset"\n"
 echo ""
 	printf "Skipping Apps Setup..."
 	sleep 2
+fi
 fi
 stty -echo
 
