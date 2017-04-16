@@ -23,7 +23,7 @@ chmod +x ./nc_install.sh
 ./nc_install.sh
 ```
 
-**Older Version**
+**Older Version**<br />
 This script supports the installation of older Nextcloud-Version.<br />
 Keep in mind, that older version may be vulnerable due to security gaps
 
