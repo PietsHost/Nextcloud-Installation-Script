@@ -475,8 +475,10 @@ echo ""
 		if [[ $url1 =~ $regexhttps ]]; then
 			printf $redbg"Make sure you have a valid SSL-Certificate or Nextcloud won't work as expected\n"$reset
 			sleep 4
-			echo "Press Enter to continue..."
-			read x
+			read -n1 -r -p " Press any key to continue... " key
+			if [ "$key" = '' ]; then
+				return
+			fi
 		fi
 	else
 		printf $redbg"Wrong input format. Enter a valid URL..."$reset
@@ -499,14 +501,11 @@ echo ""
 	read html
 
 	# Check for correct input
-	if [[ -d $html ]]; then
-    [ -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
-	else
-		printf $redbg"Wrong input format or choosen directory does not exist..."$reset
-		html='/var/www/html'
-        sleep 3
-        continue
-	fi
+	while ! [[ -d $html ]]; do
+	printf $redbg"Wrong input format or choosen directory does not exist... Enter html-directory: "$reset
+	read html
+    done
+	[ -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
 
   elif [ "$key1" = "4" ]; then
   echo ""
@@ -632,14 +631,11 @@ stty echo
 	read smtpport
 
 	# Check for correct input
-	if [[ "$smtpport" =~ ^[0-9]+$ ]]; then
-		[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Only numbers are supported..."$reset
-		smtpport='587'
-        sleep 3
-        continue
-	fi
+	while ! [[ "$smtpport" =~ ^[0-9]+$ ]]; do
+		printf $redbg"Wrong input format. Only numbers are supported...: "$reset
+		read smtpport
+	done
+	[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
 
   elif [ "$key2" = "4" ]; then
   echo ""
@@ -662,29 +658,30 @@ stty echo
 	read smtpsec
 
 	# Check for correct input
-	if [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; then
-		[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Type ssl, tls or none..."$reset
-		smtpsec='tls'
-        sleep 3
-        continue
-	fi
+	while ! [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; do
+	#if [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; then
+		printf $redbg"Wrong input format. Type ssl, tls or none...: "$reset
+		read smtpsec
+	done
+	[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
+	#else
+	#	printf $redbg"Wrong input format. Type ssl, tls or none..."$reset
+	#	smtpsec='tls'
+    #    sleep 3
+    #    continue
+	#fi
 
   elif [ "$key2" = "7" ]; then
-  echo ""
-  stty echo
-	echo -n "Is SMTP-Authentification required? (1 for yes - 0 for no): "
-	read smtpauthreq
-
-	# Check for correct input
-	if [ "$smtpauthreq" = "0" ] || [ "$smtpauthreq" = "1" ]; then
-		[  -z "$smtpauthreq" ] && smauthreqstat="$check_miss" || smauthreqstat="$check_ok"
-	else
-		printf $redbg"Wrong input format. Type 0 or 1..."$reset
+  if [ "$smtpauthreq" = "0" ]; then
 		smtpauthreq='1'
-        sleep 3
-        continue
+		smauthreqstat="$check_ok"
+		printf $green"SMTP-Authentification enabled\n"$reset
+		sleep 1
+	elif [ "$smtpauthreq" = "1" ]; then
+		smtpauthreq='0'
+		smauthreqstat="$check_ok"
+		printf $red"SMTP-Authentification disabled\n"$reset
+		sleep 1
 	fi
 
   elif [ "$key2" = "8" ]; then
@@ -775,13 +772,34 @@ stty echo
   stty echo
 	echo -n "Please enter desired admin username for Nextcloud: "
 	read adminuser
-	[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
+	
+	# Make security advise in case of root or admin as username
+	shopt -s nocasematch
+	if [[ "$adminuser" = "root" ]] || [[ "$adminuser" = "admin" ]]; then
+		[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
+		printf $redbg"Please don't use this username for security reasons. You should choose a unique username :) \n"$reset
+		read -n1 -r -p " Press any key to continue... " key
+		if [ "$key" = '' ]; then
+			return
+		fi
+	else
+		[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
+	fi
+	shopt -u nocasematch
 
   elif [ "$key3" = "3" ]; then
   echo ""
   stty echo
 	echo -n "Please enter password for database root account (won't be stored): "
 	read database_root
+	function mysqlcheck () {
+	mysql -u root -p$database_root  -e ";"
+	} &> /dev/null
+
+	while ! mysqlcheck ; do
+	printf $redbg"Wrong password! Please enter the MySQL root password!: "$reset
+       read database_root
+	done
 	[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"	
 
   elif [ "$key3" = "4" ]; then
@@ -789,21 +807,33 @@ stty echo
   stty echo
 	echo -n "Enter WWW-User (e.g. apache, apache2, etc.): "
 	read htuser
-	[  -z "$htuser" ] && htusrstat="$check_miss" || htusrstat="$check_ok"
+	while ! id "$htuser" >/dev/null 2>&1; do
+		printf $redbg"This user does not exist! Enter WWW-User: "$reset
+		read htuser
+	done
+    [  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
 
   elif [ "$key3" = "5" ]; then
   echo ""
   stty echo
 	echo -n "Enter WWW-Group (e.g. apache, www-data, etc.): "
 	read htgroup
-	[  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
+	while ! id "$htgroup" >/dev/null 2>&1; do
+		printf $redbg"This user does not exist! Enter WWW-Group: "$reset
+		read htgroup
+	done
+    [  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
 
   elif [ "$key3" = "6" ]; then
   echo ""
   stty echo
 	echo -n "Enter root user (usually: root): "
 	read rootuser
-	[  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
+	while ! id "$rootuser" >/dev/null 2>&1; do
+		printf $redbg"This user does not exist! Enter root user: "$reset
+		read rootuser
+	done
+    [  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
 
   elif [ "$key3" = "s" ]; then
   stty echo
@@ -861,9 +891,13 @@ stty echo
   if [ "$displayname" = "true" ]; then
 		displayname='false'
 		dpnamestat="$check_ok"
+		printf $red"allow change of display name set to false\n"$reset
+		sleep 1
 	elif [ "$displayname" = "false" ]; then
 		displayname='true'
 		dpnamestat="$check_ok"
+		printf $green"allow change of display name set to true\n"$reset
+		sleep 1
 	fi
 
   elif [ "$key4" = "2" ]; then
@@ -906,18 +940,26 @@ stty echo
   if [ "$maintenance" = "true" ]; then
 		maintenance='false'
 		maintstat="$check_ok"
+		printf $red"maintenance mode set to false\n"$reset
+		sleep 1
 	elif [ "$maintenance" = "false" ]; then
 		maintenance='true'
 		maintstat="$check_ok"
+		printf $green"maintenance mode set to true\n"$reset
+		sleep 1
 	fi
 
   elif [ "$key4" = "5" ]; then
 	if [ "$singleuser" = "true" ]; then
 		singleuser='false'
 		singlestat="$check_ok"
+		printf $red"singleuser mode set to false\n"$reset
+		sleep 1
 	elif [ "$singleuser" = "false" ]; then
 		singleuser='true'
 		singlestat="$check_ok"
+		printf $green"singleuser mode set to true\n"$reset
+		sleep 1
 	fi
 
   elif [ "$key4" = "6" ]; then
@@ -954,24 +996,32 @@ stty echo
 	if [ "$enable_avatars" = "true" ]; then
 		enable_avatars='false'
 		enavastat="$check_ok"
+		printf $red"enable avatars set to false\n"$reset
+		sleep 1
 	elif [ "$enable_avatars" = "false" ]; then
 		enable_avatars='true'
 		enavastat="$check_ok"
+		printf $green"enable avatars set to true\n"$reset
+		sleep 1
 	fi
 
 	elif [ "$key4" = "9" ]; then
 	if [ "$rewritebase" = "true" ]; then
 		rewritebase='false'
 		rewritestat="$check_ok"
+		printf $red"RewriteBase disabled\n"$reset
+		sleep 1
 	elif [ "$rewritebase" = "false" ]; then
 		rewritebase='true'
 		rewritestat="$check_ok"
+		printf $green"RewriteBase enabled\n"$reset
+		sleep 1
 	fi	
 
   elif [ "$key4" = "s" ]; then
   echo ""
   stty echo
-        if [ -z "$displayname" ] || [ -z "$rlchannel" ] || [ -z "$memcache" ] || [ -z "$maintenance" ] || [ -z "$singleuser" ]; then
+        if [ -z "$rlchannel" ] || [ -z "$memcache" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
 			sleep 3
         	continue
@@ -1037,59 +1087,83 @@ if [ "$key5" = "1" ]; then
 	if [ "$contactsinstall" = "true" ]; then
 		contactsinstall='false'
 		contactsstat="$check_ok"
+		printf $red"contacts installation turned off\n"$reset
+		sleep 1
 	elif [ "$contactsinstall" = "false" ]; then
 		contactsinstall='true'
 		contactsstat="$check_ok"
+		printf $green"contacs installation turned on\n"$reset
+		sleep 1
 	fi
 
   elif [ "$key5" = "2" ]; then
 	if [ "$calendarinstall" = "true" ]; then
 		calendarinstall='false'
 		calendarstat="$check_ok"
+		printf $red"calendar installation turned off\n"$reset
+		sleep 1
 	elif [ "$calendarinstall" = "false" ]; then
 		calendarinstall='true'
 		calendarstat="$check_ok"
+		printf $green"calendar installation turned on\n"$reset
+		sleep 1
 	fi
 
   elif [ "$key5" = "3" ]; then
 	if [ "$mailinstall" = "true" ]; then
 		mailinstall='false'
 		mailstat="$check_ok"
+		printf $red"mail installation turned off\n"$reset
+		sleep 1
 	elif [ "$mailinstall" = "false" ]; then
 		mailinstall='true'
 		mailstat="$check_ok"
+		printf $green"mail installation turned on\n"$reset
+		sleep 1
 	fi
 
   elif [ "$key5" = "4" ]; then
 	if [ "$notesinstall" = "true" ]; then
 		notesinstall='false'
 		notesstat="$check_ok"
+		printf $red"notes installation turned off\n"$reset
+		sleep 1
 	elif [ "$notesinstall" = "false" ]; then
 		notesinstall='true'
 		notesstat="$check_ok"
+		printf $green"notes installation turned on\n"$reset
+		sleep 1
 	fi
 
   elif [ "$key5" = "5" ]; then
 	if [ "$tasksinstall" = "true" ]; then
 		tasksinstall='false'
 		tasksstat="$check_ok"
+		printf $red"tasks installation turned off\n"$reset
+		sleep 1
 	elif [ "$tasksinstall" = "false" ]; then
 		tasksinstall='true'
 		tasksstat="$check_ok"
+		printf $green"tasks installation turned on\n"$reset
+		sleep 1
 	fi
 
   elif [ "$key5" = "6" ]; then
 	if [ "$galleryinstall" = "true" ]; then
 		galleryinstall='false'
 		gallerystat="$check_ok"
+		printf $red"gallery installation turned off\n"$reset
+		sleep 1
 	elif [ "$galleryinstall" = "false" ]; then
 		galleryinstall='true'
 		gallerystat="$check_ok"
+		printf $green"gallery installation turned on\n"$reset
+		sleep 1
 	fi
 
 	elif [ "$key5" = "s" ]; then
 	stty echo
-        if [ -z "$contactsinstall" ] || [ -z "$calendarinstall" ] || [ -z "$mailinstall" ] || [ -z "$notesinstall" ] || [ -z "$tasksinstall" ] || [ -z "$galleryinstall" ]; then
+        if [ -z "$contactsinstall" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
         	sleep 3
         	continue
@@ -1140,7 +1214,7 @@ if [ $? -eq 0 ]; then
 	rm -f nextcloud-$ncversion.tar.bz2
 else
     echo ""
-    printf $lightred"Nextcloud $ncversion doesn't exist.\n"$reset
+    printf $lightred"Nextcloud doesn't exist.\n"$reset
     echo "Please check available versions here: $ncrepo"
     echo ""
     exit 1
