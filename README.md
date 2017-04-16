@@ -32,7 +32,7 @@ chmod +x ./nc_install.sh
 
 	-h --help   	display this help and exit
 	-v --version	specify Nextcloud Version (e.g. 10.0.0)
-	-d --database	sets the MySQL root password. Type -d "P@s§"
+	-d --database	sets the MySQL root password. Type -d "P@sยง"
 	-n --name		sets the Nextcloud name, used for Database
 
 If you want to install v9.0.53 for example, use:<br />

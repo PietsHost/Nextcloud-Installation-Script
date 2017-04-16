@@ -13,6 +13,7 @@
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 # disable user input
 stty -echo
+clear
 ##################################
 ######   DEFAULT VAR START   #####
 ##################################
@@ -28,7 +29,7 @@ dbtype=mysql
 rootuser='root'
 
 # E-mail
-email='mail@example.com'
+email="mail@example.com"
 smtpauth="LOGIN"
 smtpport="587"
 smtpname="admin@example.com"
@@ -60,21 +61,86 @@ blue='\e[34m'
 cyan='\e[36m'
 ugreen='\e[4;32m'
 
-while getopts ":v:" opt; do
-  case $opt in
-    v) version="$OPTARG"
-    ;;
-    \?) printf $redbg"Invalid option -${OPTARG}\n"$reset >&2
-	stty echo
-	exit 0
-    ;;
-  esac
+show_help() {
+cat << EOF
+
+ Usage: ${0##*/} [-hvdn] [-v VERSION]...
+ You can specify some variables before script run.
+ E.g. you can set the Nextcloud version or the 
+ MySQL root password. If no option is set, the
+ script will use default variables.
+
+	-h --help   	display this help and exit
+	-v --version	specify Nextcloud Version (e.g. 10.0.0)
+	-d --database	sets the MySQL root password. Type -d "P@s§"
+	-n --name		sets the Nextcloud name, used for Database
+EOF
+}
+
+while :; do
+    case $1 in
+        -h|-\?|--help)   # Call a "show_help" function , then exit.
+        	show_help
+			stty echo
+            exit
+            ;;
+        -v|--version)       # Takes an option argument, ensuring it has been specified.
+            if [ -n "$2" ]; then
+                version="$2"
+                shift
+            else
+                printf $redbg'ERROR: "--version" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+            ;;
+        -d|--database)
+		echo "$database_root"
+			if [ -n "$2" ]; then
+				database_root="$2"
+				shift
+			else
+                printf $redbg'ERROR: "--database" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+            ;;
+		-n|--name)
+			if [ -n "$2" ]; then
+				ncname="$2"
+				shift
+			else
+                printf $redbg'ERROR: "--name" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+            ;;
+        --)              # End of all options.
+            shift
+            break
+            ;;
+        -?*)
+            printf $redbg'Invalid option: %s' "$1" >&2
+			printf $reset"\n"
+			stty echo
+			exit 0
+            ;;
+        *)               # Default case: If no more options then break out of the loop.
+            break
+    esac
+
+    shift
 done
 
-header=' ______ __         __           _______               __
-|   __ \__|.-----.|  |_.-----. |   |   |.-----.-----.|  |_
-|    __/  ||  -__||   _|__ --| |       ||  _  |__ --||   _|
-|___|  |__||_____||____|_____| |___|___||_____|_____||____|'
+header=' _____ _      _         _    _           _
+|  __ (_)    | |       | |  | |         | |
+| |__) |  ___| |_ ___  | |__| | ___  ___| |_
+|  ___/ |/ _ \ __/ __| |  __  |/ _ \/ __| __|	+-+-+-+-+
+| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.5 |
+|_|   |_|\___|\__|___/ |_|  |_|\___/|___/\__|	+-+-+-+-+'
 
 # Set color for Status
 check_ok=$green"   OK  "$reset
@@ -84,7 +150,7 @@ check_miss=$redbg"MISSING"$reset
 ncrepo="https://download.nextcloud.com/server/releases"
 
 # Must be root
-[[ `id -u` -eq 0 ]] || { echo "Must be root to run script, type: sudo -i"; exit 1; }
+[[ `id -u` -eq 0 ]] || { echo "Must be root to run script, type: sudo -i"; stty echo; exit 1; }
 
 ##########################################################################################
 
@@ -126,7 +192,7 @@ sleep 1
 
 if [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ||
       "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ||
-      "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) || 
+      "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ||
 	  "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
 	printf $green"Very Good! Your OS is compatible.\n"$reset
 	echo ""
@@ -135,6 +201,7 @@ else
     printf $red"Unfortunately, this OS is not supported by Piet's Host Install-script for Nextcloud.\n"$reset
     echo ""
 	sleep 2
+	stty echo
 	exit 1
 fi
 sleep 1
@@ -387,7 +454,7 @@ notes_repo=https://github.com/nextcloud/notes/releases/download
 # enable user input
 stty echo
 
-# clear user input 
+# clear user input
 read -t 1 -n 100 discard
 
 clear
@@ -575,6 +642,7 @@ if [ -f "$ncpath/occ" ]; then
 	echo "If your version isn't up to date make use of the Piet's Host ncupdate-script."
 	echo ""
 	sleep 2
+	stty echo
     exit 0
 else
 	echo ""
@@ -783,7 +851,7 @@ stty echo
   stty echo
 	echo -n "Please enter desired admin username for Nextcloud: "
 	read adminuser
-	
+
 	# Make security advise in case of root or admin as username
 	shopt -s nocasematch
 	if [[ "$adminuser" = "root" ]] || [[ "$adminuser" = "admin" ]]; then
@@ -803,7 +871,7 @@ stty echo
   stty echo
 	echo -n "Please enter password for database root account (won't be stored): "
 	read database_root
-	
+
 	# function check MySQL Login
 	function mysqlcheck () {
 	mysql -u root -p$database_root  -e ";"
@@ -813,7 +881,7 @@ stty echo
 	printf $redbg"Wrong password! Please enter the MySQL root password!: "$reset
        read database_root
 	done
-	[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"	
+	[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"
 
   elif [ "$key3" = "4" ]; then
   echo ""
@@ -1003,7 +1071,7 @@ stty echo
 	stty echo
 	echo -n "Enter default language (e.g. de, en, fr, etc..): "
 	read default_language
-	[  -z "$default_language" ] && langstat="$check_miss" || langstat="$check_ok"	
+	[  -z "$default_language" ] && langstat="$check_miss" || langstat="$check_ok"
 
 	elif [ "$key4" = "8" ]; then
 	if [ "$enable_avatars" = "true" ]; then
@@ -1029,7 +1097,7 @@ stty echo
 		rewritestat="$check_ok"
 		printf $green"RewriteBase enabled\n"$reset
 		sleep 1
-	fi	
+	fi
 
   elif [ "$key4" = "s" ]; then
   echo ""
@@ -1374,6 +1442,7 @@ then
 	printf $redbg"One or more variables are undefined. Aborting..."$reset
 	echo ""
 	sleep 1
+	stty echo
 	exit 0
 else
 
@@ -1443,6 +1512,7 @@ then
 	printf $redbg"One or more variables are undefined. Aborting...\n"$reset
 	echo ""
 	sleep 1
+	stty echo
 	exit 0
 else
 printf $green"Done!\n"$reset
@@ -1600,7 +1670,7 @@ while true; do progress; done &
 	else
 		rewritevalue='/'
 	fi
-	
+
 	# Check for pretty URLs
 	if [[ "$rewritebase" = "true" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set htaccess.RewriteBase --value "$rewritevalue"
