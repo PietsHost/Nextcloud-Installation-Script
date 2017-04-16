@@ -60,6 +60,17 @@ blue='\e[34m'
 cyan='\e[36m'
 ugreen='\e[4;32m'
 
+while getopts ":v:" opt; do
+  case $opt in
+    v) version="$OPTARG"
+    ;;
+    \?) printf $redbg"Invalid option -${OPTARG}\n"$reset >&2
+	stty echo
+	exit 0
+    ;;
+  esac
+done
+
 header=' ______ __         __           _______               __
 |   __ \__|.-----.|  |_.-----. |   |   |.-----.-----.|  |_
 |    __/  ||  -__||   _|__ --| |       ||  _  |__ --||   _|
@@ -792,6 +803,8 @@ stty echo
   stty echo
 	echo -n "Please enter password for database root account (won't be stored): "
 	read database_root
+	
+	# function check MySQL Login
 	function mysqlcheck () {
 	mysql -u root -p$database_root  -e ";"
 	} &> /dev/null
@@ -1202,10 +1215,15 @@ printf $green"$header"$reset"\n"
 echo ""
 
 # Get latest nextcloud version
-ncversion=$(curl -s -m 900 $ncrepo/ | tac | grep unknown.gif | sed 's/.*"nextcloud-\([^"]*\).zip.sha512".*/\1/;q')
+if [[ -n "$version" ]]; then
+	ncversion=${version}
+	echo "Checking Nextcloud v${version} on the download server and if it's possible to download..."
+else
+	ncversion=$(curl -s -m 900 $ncrepo/ | tac | grep unknown.gif | sed 's/.*"nextcloud-\([^"]*\).zip.sha512".*/\1/;q')
+	echo "Checking latest version on the Nextcloud download server and if it's possible to download..."
+fi
 
-# Check Nextcloud
-echo "Checking latest released version on the Nextcloud download server and if it's possible to download..."
+# Check Nextcloud download
 echo ""
 wget -q -T 10 -t 2 $ncrepo/nextcloud-$ncversion.tar.bz2 > /dev/null
 if [ $? -eq 0 ]; then
@@ -1213,10 +1231,11 @@ if [ $? -eq 0 ]; then
 	sleep 1
 	rm -f nextcloud-$ncversion.tar.bz2
 else
+    printf $lightred"Nextcloud version ${version} doesn't exist.\n"$reset
+	echo ""
+    printf "Please check available versions here: ${ugreen}${ncrepo}\n"$reset
     echo ""
-    printf $lightred"Nextcloud doesn't exist.\n"$reset
-    echo "Please check available versions here: $ncrepo"
-    echo ""
+	stty echo
     exit 1
 fi
 
@@ -1228,6 +1247,7 @@ then
 	printf $redbg"One or more variables are undefined. Aborting...\n"$reset
 	echo ""
 	sleep 1
+	stty echo
 	exit 0
 else
 
@@ -1264,6 +1284,7 @@ then
 	echo ""
 else
     echo "Oh no! Something went wrong with the download"
+	stty echo
 	exit 1
 fi
 
