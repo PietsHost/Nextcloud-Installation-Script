@@ -49,6 +49,7 @@ skeleton='none'
 default_language='de'
 enable_avatars='true'
 rewritebase='false'
+dbruser='root'
 
 ################################
 ######   DEFAULT VAR END   #####
@@ -182,7 +183,7 @@ header=' _____ _      _         _    _           _
 |  __ (_)    | |       | |  | |         | |
 | |__) |  ___| |_ ___  | |__| | ___  ___| |_
 |  ___/ |/ _ \ __/ __| |  __  |/ _ \/ __| __|	+-+-+-+-+
-| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.5 |
+| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.6 |
 |_|   |_|\___|\__|___/ |_|  |_|\___/|___/\__|	+-+-+-+-+'
 
 # Set color for Status
@@ -295,6 +296,7 @@ function check(){
 [  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
 [  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
 [  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
+[  -z "$dbruser" ] && dbusrstat="$check_miss" || dbusrstat="$check_ok"
 [  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"
 [  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
 [  -z "$displayname" ] && dpnamestat="$check_miss" || dpnamestat="$check_ok"
@@ -962,15 +964,16 @@ stty echo
   printf "  1   |  $emailstat   |          E-Mail: | "$email"\n"
   printf "  2   |  $adusrstat   |  Admin Username: | "$adminuser"\n"
   echo ""
-  echo -e "  3   |  $dbrootstat   |Database Root-PW: | "$database_root
+   printf "  3   |  $dbusrstat   |     DB Username: | "$dbruser"\n"
+  echo -e "  4   |  $dbrootstat   |Database Root-PW: | "$database_root
   echo ""
-  printf "  4   |  $htusrstat   |        WWW User: | "$htuser"\n"
-  printf "  5   |  $htgrpstat   |       WWW Group: | "$htgroup"\n"
-  printf "  6   |  $rootusrstat   |       root user: | "$rootuser"\n"
+  printf "  5   |  $htusrstat   |        WWW User: | "$htuser"\n"
+  printf "  6   |  $htgrpstat   |       WWW Group: | "$htgroup"\n"
+  printf "  7   |  $rootusrstat   |       root user: | "$rootuser"\n"
   echo "------+------------+------------------+------------------------------------"
-  printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+  printf "Type [1-7] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-6], [s] or [q]: ";key3=$(readOne)
+  echo -en "Enter [1-7], [s] or [q]: ";key3=$(readOne)
 
   if [ "$key3" = "1" ]; then
   echo ""
@@ -1011,12 +1014,23 @@ stty echo
   elif [ "$key3" = "3" ]; then
   echo ""
   stty echo
+	echo -n "Please enter Database Root username: "
+	read dbruser
+	[  -z "$dbruser" ] && dbusrstat="$check_miss" || dbusrstat="$check_ok"
+
+  elif [ "$key3" = "4" ]; then
+  echo ""
+  stty echo
 	echo -n "Please enter password for database root account (won't be stored): "
 	read database_root
 
 	# function check MySQL Login
 	function mysqlcheck () {
-	mysql -u root -p$database_root  -e ";"
+	if [[ "dbhost" = "localhost" ]]; then
+	mysql -u $dbruser -p$database_root  -e ";"
+	else
+	mysql -u $dbruser -p$database_root -h $dbhost -e ";"
+	fi
 	} &> /dev/null
 
 	while ! mysqlcheck ; do
@@ -1025,7 +1039,7 @@ stty echo
 	done
 	[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"
 
-  elif [ "$key3" = "4" ]; then
+  elif [ "$key3" = "5" ]; then
   echo ""
   stty echo
 	echo -n "Enter WWW-User (e.g. apache, apache2, etc.): "
@@ -1036,7 +1050,7 @@ stty echo
 	done
     [  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
 
-  elif [ "$key3" = "5" ]; then
+  elif [ "$key3" = "6" ]; then
   echo ""
   stty echo
 	echo -n "Enter WWW-Group (e.g. apache, www-data, etc.): "
@@ -1047,7 +1061,7 @@ stty echo
 	done
     [  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
 
-  elif [ "$key3" = "6" ]; then
+  elif [ "$key3" = "7" ]; then
   echo ""
   stty echo
 	echo -n "Enter root user (usually: root): "
@@ -1060,7 +1074,7 @@ stty echo
 
   elif [ "$key3" = "s" ]; then
   stty echo
-        if [ -z "$email" ] || [ -z "$htuser" ] || [ -z "$htgroup" ] || [ -z "$rootuser" ] || [ -z "$adminuser" ] || [ -z "$database_root" ]; then
+        if [ -z "$email" ] || [ -z "$htuser" ] || [ -z "$htgroup" ] || [ -z "$rootuser" ] || [ -z "$dbruser" ] || [ -z "$adminuser" ] || [ -z "$database_root" ]; then
         	printf $redbg"One or more variables are undefined. Aborting..."$reset
         	sleep 3
         	continue
@@ -1384,7 +1398,7 @@ sleep 1
 printf "  |===============>    |   (80%%)\r"
 sleep 1
 printf "  |===================>|   (100%%)\r"
-printf "n"
+printf "\n"
 fi
 
 ####################
@@ -1504,12 +1518,21 @@ else
 printf $yellow"Creating Database...\n"$reset
 echo ""
 {
-mysql -u root -p$database_root -e "CREATE DATABASE $dbname"
-sleep 1
-mysql -u root -p$database_root -e "USE $dbname"
-sleep 1
-mysql -u root -p$database_root -e "GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'localhost' IDENTIFIED BY '$dbpwd'"
-sleep 1
+if [[ "dbhost" = "localhost" ]]; then
+	mysql -u $dbruser -p$database_root -e "CREATE DATABASE $dbname"
+	sleep 1
+	mysql -u $dbruser -p$database_root -e "USE $dbname"
+	sleep 1
+	mysql -u $dbruser -p$database_root -e "GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'localhost' IDENTIFIED BY '$dbpwd'"
+	sleep 1
+else
+	mysql -u $dbruser -p$database_root -h $dbhost -e "CREATE DATABASE $dbname"
+	sleep 1
+	mysql -u $dbruser -p$database_root -h $dbhost -e "USE $dbname"
+	sleep 1
+	mysql -u $dbruser -p$database_root -h $dbhost -e "GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'%' IDENTIFIED BY '$dbpwd'"
+	sleep 1
+fi
 } &> /dev/null
 printf $green"Done! Continuing..\n"$reset
 sleep 1
