@@ -75,7 +75,7 @@ cat << EOF
 
 	-h --help	display this help and exit
 	-v --version	specify Nextcloud Version (e.g. 10.0.0)
-	-p --password	sets the MySQL root password. Type -d "P@s§"
+	-p --password	sets the MySQL root password. Type -p "P@s§"
 	-n --name	sets the Nextcloud name, used for Database
 	-u --url	sets the URL for Nextcloud installation
 	-d --directory	sets the full installation path
@@ -1375,16 +1375,16 @@ else
 echo ""
 echo "Performing install in 5 seconds.."
 echo ""
-echo -ne '  |====>               |   (20%)\r'
+printf "  |====>               |   (20%%)\r"
 sleep 1
-echo -ne '  |=======>            |   (40%)\r'
+printf "  |=======>            |   (40%%)\r"
 sleep 1
-echo -ne '  |===========>        |   (60%)\r'
+printf "  |===========>        |   (60%%)\r"
 sleep 1
-echo -ne '  |===============>    |   (80%)\r'
+printf "  |===============>    |   (80%%)\r"
 sleep 1
-echo -ne '  |===================>|   (100%)\r'
-echo -ne '\n'
+printf "  |===================>|   (100%%)\r"
+printf "n"
 fi
 
 ####################
