@@ -77,12 +77,14 @@ cat << EOF
 	-h --help	display this help and exit
 	-v --version	specify Nextcloud Version (e.g. 10.0.0)
 	-p --password	sets the MySQL root password. Type -p "P@s§"
+	-r --root	sets the MySQL root user
+	-m --mysqlhost	sets the MySQL Host
 	-n --name	sets the Nextcloud name, used for Database
 	-u --url	sets the URL for Nextcloud installation
 	-d --directory	sets the full installation path
 	-f --folder sets the desired folder (example.com/folder). May be empty
-	-s --smtp	setup SMTP during script run (no argument required)
-	-a --apps setup additionals apps during run (no argument required)
+	-s --smtp	setup SMTP during script run (Type -s "y" or -s "n")
+	-a --apps setup additionals apps during run (Type -a "y" or -a "n")
 	
 EOF
 }
@@ -106,12 +108,33 @@ while :; do
             fi
             ;;
         -p|--password)
-		echo "$database_root"
 			if [ -n "$2" ]; then
 				database_root="$2"
 				shift
 			else
                 printf $redbg'ERROR: "--password" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+            ;;
+		-r|--root)
+			if [ -n "$2" ]; then
+				dbruser="$2"
+				shift
+			else
+                printf $redbg'ERROR: "--root" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+            ;;
+		-m|--mysqlhost)
+			if [ -n "$2" ]; then
+				dbhost="$2"
+				shift
+			else
+                printf $redbg'ERROR: "--mysqlhost" requires a non-empty option argument.' >&2
 				printf $reset"\n"
 				stty echo
                 exit 1
@@ -155,12 +178,26 @@ while :; do
 				shift
             ;;
 		-s|--smtp)
-				smtp="y"
+			if [ -n "$2" ]; then
+				smtp="$2"
 				shift
+			else
+                printf $redbg'ERROR: "--smtp" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
             ;;
 		-a|--apps)
-				appsinstall="y"
+			if [ -n "$2" ]; then
+				appsinstall="$2"
 				shift
+			else
+                printf $redbg'ERROR: "--apps" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
             ;;
         --)              # End of all options.
             shift
@@ -256,19 +293,33 @@ printf $yellow"Installing dependencies...\n"$reset
 if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
 htuser='www-data'
 htgroup='www-data'
-	 sudo apt-get install -y pv bzip2 rsync bc
+dpkg -l | grep -qw pv || apt-get install pv
+dpkg -l | grep -qw bzip2 || apt-get install bzip2
+dpkg -l | grep -qw rsync || apt-get install rsync
+dpkg -l | grep -qw bc || apt-get install bc
 elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
 htuser='www-data'
 htgroup='www-data'
-	apt-get install pv && apt-get install bzip2 && apt-get install rsync && apt-get install bc
+dpkg -l | grep -qw pv || apt-get install pv
+dpkg -l | grep -qw bzip2 || apt-get install bzip2
+dpkg -l | grep -qw rsync || apt-get install rsync
+dpkg -l | grep -qw bc || apt-get install bc
 elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
 htuser='apache'
 htgroup='apache'
-	yum install -y pv bzip2 rsync php-process bc
+rpm -qa | grep -qw pv || yum install pv
+rpm -qa | grep -qw bc || yum install bc
+rpm -qa | grep -qw bzip2 || yum install bzip2
+rpm -qa | grep -qw rsync || yum install rsync
+rpm -qa | grep -qw php-process || yum install php-process
 elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
 htuser='apache'
 htgroup='apache'
-	dnf install pv bzip2 rsync php-process bc
+rpm -qa | grep -qw pv || dnf install pv
+rpm -qa | grep -qw bc || dnf install bc
+rpm -qa | grep -qw bzip2 || dnf install bzip2
+rpm -qa | grep -qw rsync || dnf install rsync
+rpm -qa | grep -qw php-process || dnf install php-process
 fi
 } &> /dev/null
 
@@ -317,6 +368,12 @@ function checkapps(){
 [  -z "$notesinstall" ] && notesstat="$check_miss" || notesstat="$check_ok"
 [  -z "$tasksinstall" ] && tasksstat="$check_miss" || tasksstat="$check_ok"
 [  -z "$galleryinstall" ] && gallerystat="$check_miss" || gallerystat="$check_ok"
+}
+
+function printhead {
+clear
+printf $green"$header"$reset
+echo ""
 }
 
 # autoinput on keypress
@@ -468,9 +525,7 @@ function progress () {
 function smtpsetup(){
 clear
 while true; do
-  clear
-printf $green"$header"$reset
-echo ""
+  printhead
 echo ""
 stty echo
   echo "--------------------------------------------------------------------------"
@@ -598,9 +653,7 @@ checkapps
 
 clear
 while true; do
-  clear
-printf $green"$header"$reset
-echo ""
+  printhead
 echo ""
 stty echo
   echo "--------------------------------------------------------------------"
@@ -752,9 +805,7 @@ stty echo
 # clear user input
 read -t 1 -n 100 discard
 
-clear
-printf $green"$header"$reset
-echo ""
+printhead
 echo ""
 
   echo "--------------------------------------------------------"
@@ -788,9 +839,7 @@ if [ "$key" = '' ]; then
 fi
 echo ""
 stty -echo
-clear
-printf $green"$header"$reset
-echo ""
+printhead
 echo ""
 
 #################################
@@ -811,9 +860,7 @@ stty echo
 check
 clear
 while true; do
-  clear
-printf $green"$header"$reset
-echo ""
+  printhead
 echo ""
 
   echo "--------------------------------------------------------------------------"
@@ -951,9 +998,7 @@ stty echo
 
 clear
 while true; do
-  clear
-printf $green"$header"$reset
-echo ""
+  printhead
 echo ""
 stty echo
   echo "--------------------------------------------------------------------------"
@@ -1100,9 +1145,7 @@ sleep 1
 
 clear
 while true; do
-  clear
-printf $green"$header"$reset
-echo ""
+  printhead
 echo ""
 stty echo
   echo "--------------------------------------------------------------------------"
@@ -1282,25 +1325,26 @@ done
 #################################
 
 # ask for SMTP-Setup
-clear
-printf $green"$header"$reset
-echo ""
+printhead
 if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
 	echo ""
 	smtpsetup
-else
+elif [ "$smtp" == "n" ] || [ "$smtp" == "N" ]; then
+	printhead
+	echo ""
+	printf "Skipping SMTP Setup..."
+	sleep 1
+elif [ -z "$smtp" ]; then
 	echo ""
 	echo -en "Do you want to setup SMTP (y/n)? ";smtp=$(readOne)
 	if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
-	smtpsetup
-
-else
-	clear
-printf $green"$header"$reset"\n"
-echo ""
-	printf "Skipping SMTP Setup..."
-	sleep 2
-fi
+		smtpsetup
+	else
+		printhead
+		echo ""
+		printf "Skipping SMTP Setup..."
+		sleep 1
+	fi
 fi
 sleep 1
 ###############################
@@ -1312,31 +1356,39 @@ sleep 1
 #################################
 
 # ask for Apps-Setup
-clear
-printf $green"$header"$reset
-echo ""
+printhead
 if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
 	echo ""
 	installapps
-else
+elif [ "$appsinstall" == "n" ] || [ "$appsinstall" == "N" ]; then
+	contactsinstall='false'
+	calendarinstall='false'
+	mailinstall='false'
+	notesinstall='false'
+	tasksinstall='false'
+	galleryinstall'false'
+	printhead
 	echo ""
-echo -en "Do you want to setup additional Apps (y/n)? ";appsinstall=$(readOne)
+	printf "Skipping Apps Setup..."
+	sleep 1
+
+elif [ -z "$appsinstall" ]; then
+	echo ""
+	echo -en "Do you want to setup additional Apps (y/n)? ";appsinstall=$(readOne)
 	if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
 		installapps
-
-else
-contactsinstall='false'
-calendarinstall='false'
-mailinstall='false'
-notesinstall='false'
-tasksinstall='false'
-galleryinstall'false'
-	clear
-printf $green"$header"$reset"\n"
-echo ""
-	printf "Skipping Apps Setup..."
-	sleep 2
-fi
+	else
+		contactsinstall='false'
+		calendarinstall='false'
+		mailinstall='false'
+		notesinstall='false'
+		tasksinstall='false'
+		galleryinstall'false'
+		printhead
+		echo ""
+		printf "Skipping Apps Setup..."
+		sleep 1
+	fi
 fi
 stty -echo
 
@@ -1344,10 +1396,8 @@ stty -echo
 ######   Apps-Setup End   #####
 ###############################
 
-clear
-printf $green"$header"$reset"\n"
+printhead
 echo ""
-
 # Get latest nextcloud version
 if [[ -n "$version" ]]; then
 	ncversion=${version}
@@ -1442,9 +1492,7 @@ echo ""
 	echo ""
 	sleep 1
 
-clear
-printf $green"$header"$reset"\n"
-echo ""
+printhead
 echo ""
 ####################
 ##  PASSWORD-GEN  ##
@@ -1791,8 +1839,7 @@ echo "Database password	: $dbpwd"
 } > /root/${ncname}_passwords.txt
 
 {
-clear
-printf $green"$header"$reset"\n"
+printhead
 echo ""
 echo "###################################################################"
 echo " Congratulations. Nextcloud has now been successfully"
@@ -1830,7 +1877,7 @@ printf $green"Navigate to $url and enjoy Nextcloud!\n"$reset
 		printf $green"sudo -u ${htuser} php $ncpath/occ singleuser:mode --off"$reset
 		sleep 2
 	fi
-
+rm -f nextcloud-$ncversion.tar.bz2
 echo ""
 } &>/dev/tty
 stty echo
