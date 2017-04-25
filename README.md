@@ -32,7 +32,7 @@ chmod +x ./nc_install.sh
 
 	-h --help	display this help and exit
 	-v --version	specify Nextcloud Version (e.g. 10.0.0)
-	-p --password	sets the MySQL root password. Type -p "P@s"
+	-p --password	sets the MySQL root password. Type -p "P@s$"
 	-r --root	sets the MySQL root user
 	-m --mysqlhost	sets the MySQL Host
 	-n --name	sets the Nextcloud name, used for Database
