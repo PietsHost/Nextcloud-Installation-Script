@@ -1,4 +1,8 @@
 # Nextcloud Installation Script
+
+[![GitHub issues](https://img.shields.io/github/issues/PietsHost/nextcloud-Installation-Script.svg)](https://github.com/PietsHost/nextcloud-Installation-Script/issues)
+[![GitHub release](https://img.shields.io/github/release/PietsHost/nextcloud-Installation-Script.svg)](https://github.com/PietsHost/nextcloud-Installation-Script/releases)
+
 Easy automatic CLI-Installation of Nextcloud
 
 
