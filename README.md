@@ -2,7 +2,8 @@
 
 [![GitHub issues](https://img.shields.io/github/issues/PietsHost/nextcloud-Installation-Script.svg)](https://github.com/PietsHost/nextcloud-Installation-Script/issues)
 [![GitHub release](https://img.shields.io/github/release/PietsHost/nextcloud-Installation-Script.svg)](https://github.com/PietsHost/nextcloud-Installation-Script/releases)
-[![GitHub license](https://img.shields.io/badge/license-AGPL-blue.svg?colorB=767676)](https://raw.githubusercontent.com/PietsHost/Nextcloud-Installation-Script/master/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/PietsHost/Nextcloud-Installation-Script.svg)](https://github.com/PietsHost/Nextcloud-Installation-Script/stargazers)
+[![GitHub license](https://img.shields.io/badge/license-AGPL-blue.svg?colorB=898989)](https://raw.githubusercontent.com/PietsHost/Nextcloud-Installation-Script/master/LICENSE)
 
 Easy automatic CLI-Installation of Nextcloud
 
