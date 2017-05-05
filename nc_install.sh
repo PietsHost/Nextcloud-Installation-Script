@@ -220,7 +220,7 @@ header=' _____ _      _         _    _           _
 |  __ (_)    | |       | |  | |         | |
 | |__) |  ___| |_ ___  | |__| | ___  ___| |_
 |  ___/ |/ _ \ __/ __| |  __  |/ _ \/ __| __|	+-+-+-+-+
-| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.6 |
+| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.7 |
 |_|   |_|\___|\__|___/ |_|  |_|\___/|___/\__|	+-+-+-+-+'
 
 # Set color for Status
@@ -297,6 +297,7 @@ dpkg -l | grep -qw pv || apt-get install pv
 dpkg -l | grep -qw bzip2 || apt-get install bzip2
 dpkg -l | grep -qw rsync || apt-get install rsync
 dpkg -l | grep -qw bc || apt-get install bc
+dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet
 elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
 htuser='www-data'
 htgroup='www-data'
@@ -304,6 +305,7 @@ dpkg -l | grep -qw pv || apt-get install pv
 dpkg -l | grep -qw bzip2 || apt-get install bzip2
 dpkg -l | grep -qw rsync || apt-get install rsync
 dpkg -l | grep -qw bc || apt-get install bc
+dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet
 elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
 htuser='apache'
 htgroup='apache'
@@ -312,6 +314,7 @@ rpm -qa | grep -qw bc || yum install bc
 rpm -qa | grep -qw bzip2 || yum install bzip2
 rpm -qa | grep -qw rsync || yum install rsync
 rpm -qa | grep -qw php-process || yum install php-process
+rpm -qa | grep -qw xmlstarlet || yum install xmlstarlet
 elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
 htuser='apache'
 htgroup='apache'
@@ -320,6 +323,7 @@ rpm -qa | grep -qw bc || dnf install bc
 rpm -qa | grep -qw bzip2 || dnf install bzip2
 rpm -qa | grep -qw rsync || dnf install rsync
 rpm -qa | grep -qw php-process || dnf install php-process
+rpm -qa | grep -qw xmlstarlet || dnf install xmlstarlet
 fi
 } &> /dev/null
 
@@ -368,6 +372,7 @@ function checkapps(){
 [  -z "$notesinstall" ] && notesstat="$check_miss" || notesstat="$check_ok"
 [  -z "$tasksinstall" ] && tasksstat="$check_miss" || tasksstat="$check_ok"
 [  -z "$galleryinstall" ] && gallerystat="$check_miss" || gallerystat="$check_ok"
+[  -z "$impinstall" ] && impstat="$check_miss" || impstat="$check_ok"
 }
 
 function printhead {
@@ -500,6 +505,29 @@ function galleryinstall {
 			sudo -u ${htuser} php $ncpath/occ app:enable gallery
 		fi
 		}
+
+function impersonateinstall {
+		# Download and install impersonate
+		if [ -d $ncpath/apps/impersonate ]
+		then
+			sleep 1
+		else
+			wget -q $impersonate_repo/$impersonate_file -P $ncpath/apps
+			tar -zxf $ncpath/apps/$impersonate_file
+			mv $impersonate_folder $impersonate_new
+			mv $impersonate_new $ncpath/apps
+			cd $ncpath/apps
+			rm -f $impersonate_file
+		fi
+
+		# Enable impersonate
+		if [ -d $ncpath/apps/impersonate ]
+		then
+			# Set minimum-version to 10 since 12 isn't released yet
+			xmlstarlet edit -L -u "/info/dependencies/nextcloud[@min-version='12'] [@max-version='12']/@min-version" -v 10 $ncpath/apps/impersonate/appinfo/info.xml
+			sudo -u ${htuser} php $ncpath/occ app:enable impersonate
+		fi
+		}		
 
 function progress () {
     s=0.75;
@@ -648,6 +676,7 @@ mailinstall='false'
 notesinstall='false'
 tasksinstall='false'
 galleryinstall='false'
+impinstall='false'
 
 checkapps
 
@@ -667,10 +696,11 @@ stty echo
   printf "  4   |  $notesstat   |         notes: |     "$notesinstall"\n"
   printf "  5   |  $tasksstat   |         tasks: |     "$tasksinstall"\n"
   printf "  6   |  $gallerystat   |       gallery: |     "$galleryinstall"\n"
+  printf "  7   |  $impstat   |   impersonate: |     "$impinstall"\n"
   echo "------+------------+----------------+-------------------------------"
-  printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+  printf "Type [1-7] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-6], [s] or [q]: ";key5=$(readOne)
+  echo -en "Enter [1-7], [s] or [q]: ";key5=$(readOne)
 
 if [ "$key5" = "1" ]; then
 	if [ "$contactsinstall" = "true" ]; then
@@ -750,6 +780,19 @@ if [ "$key5" = "1" ]; then
 		sleep 1
 	fi
 
+  elif [ "$key5" = "7" ]; then
+	if [ "$impinstall" = "true" ]; then
+		impinstall='false'
+		impstat="$check_ok"
+		printf $red"impersonate installation turned off\n"$reset
+		sleep 1
+	elif [ "$impinstall" = "false" ]; then
+		impinstall='true'
+		impstat="$check_ok"
+		printf $green"impersonate installation turned on\n"$reset
+		sleep 1
+	fi
+
 	elif [ "$key5" = "s" ]; then
 	stty echo
         if [ -z "$contactsinstall" ]; then
@@ -795,6 +838,11 @@ gallery_repo=https://github.com/nextcloud/gallery/releases/download
 notes=$(curl -s https://api.github.com/repos/nextcloud/notes/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
 notes_file=notes.tar.gz
 notes_repo=https://github.com/nextcloud/notes/releases/download
+# impersonate
+impersonate_file=v1.0.1.tar.gz
+impersonate_folder="./impersonate-1.0.1"
+impersonate_new="impersonate"
+impersonate_repo=https://github.com/nextcloud/impersonate/archive/
 #################################
 ######   INITIALIZATION    ######
 #################################
@@ -1100,8 +1148,9 @@ stty echo
   stty echo
 	echo -n "Enter WWW-Group (e.g. apache, www-data, etc.): "
 	read htgroup
-	while ! id "$htgroup" >/dev/null 2>&1; do
-		printf $redbg"This user does not exist! Enter WWW-Group: "$reset
+
+   while ! grep -q $htgroup /etc/group >/dev/null 2>&1; do
+    printf $redbg"This user does not exist! Enter WWW-Group: "$reset
 		read htgroup
 	done
     [  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
@@ -1367,6 +1416,7 @@ elif [ "$appsinstall" == "n" ] || [ "$appsinstall" == "N" ]; then
 	notesinstall='false'
 	tasksinstall='false'
 	galleryinstall'false'
+	impinstall='false'
 	printhead
 	echo ""
 	printf "Skipping Apps Setup..."
@@ -1384,6 +1434,7 @@ elif [ -z "$appsinstall" ]; then
 		notesinstall='false'
 		tasksinstall='false'
 		galleryinstall'false'
+		impinstall='false'
 		printhead
 		echo ""
 		printf "Skipping Apps Setup..."
@@ -1568,6 +1619,7 @@ echo ""
 {
 if [[ "dbhost" = "localhost" ]]; then
 	mysql -u $dbruser -p$database_root -e "CREATE DATABASE $dbname"
+	mysql -u $dbruser -p$database_root -e "CREATE DATABASE $dbname CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci"
 	sleep 1
 	mysql -u $dbruser -p$database_root -e "USE $dbname"
 	sleep 1
@@ -1759,6 +1811,7 @@ while true; do progress; done &
 	if [[ "$notesinstall" = "true" ]]; then notesinstall; fi
 	if [[ "$tasksinstall" = "true" ]]; then tasksinstall; fi
 	if [[ "$galleryinstall" = "true" ]]; then galleryinstall; fi
+	if [[ "$impinstall" = "true" ]]; then impersonateinstall; fi
 
 	sudo -u ${htuser} php $ncpath/occ user:setting $adminuser settings email "$email"
 	sudo -u ${htuser} php $ncpath/occ config:system:set default_language --value "$default_language"
