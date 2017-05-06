@@ -23,7 +23,7 @@ clear
 #database_root='P@s$w0rd!'
 
 url1="http://example.com"
-ncname=nextcloud1
+ncname="my_nextcloud"
 dbhost=localhost
 dbtype=mysql
 rootuser='root'
@@ -36,7 +36,7 @@ smtpauth="LOGIN"
 smtpport="587"
 smtpname="admin@example.com"
 smtpsec="tls"
-smtppwd='password1234!'
+smtppwd="password1234!"
 smtpauthreq=1
 
 # Others
@@ -49,7 +49,6 @@ skeleton='none'
 default_language='de'
 enable_avatars='true'
 rewritebase='false'
-dbruser='root'
 
 ################################
 ######   DEFAULT VAR END   #####
@@ -287,43 +286,67 @@ else
 fi
 sleep 1
 
-printf $yellow"Installing dependencies...\n"$reset
+printf $yellow"Installing dependencies...(may take some time)\n"$reset
 
 {
 if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
 htuser='www-data'
 htgroup='www-data'
-dpkg -l | grep -qw pv || apt-get install pv
-dpkg -l | grep -qw bzip2 || apt-get install bzip2
-dpkg -l | grep -qw rsync || apt-get install rsync
-dpkg -l | grep -qw bc || apt-get install bc
-dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet
+dpkg -l | grep -qw pv || apt-get install pv -y
+dpkg -l | grep -qw bzip2 || apt-get install bzip2 -y
+dpkg -l | grep -qw rsync || apt-get install rsync -y
+dpkg -l | grep -qw bc || apt-get install bc -y
+dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
+	#Check for Plesk installation
+	if dpkg -l | grep -q psa; then
+		dbruser='admin'
+	else
+		dbruser='root'
+	fi
 elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
 htuser='www-data'
 htgroup='www-data'
-dpkg -l | grep -qw pv || apt-get install pv
-dpkg -l | grep -qw bzip2 || apt-get install bzip2
-dpkg -l | grep -qw rsync || apt-get install rsync
-dpkg -l | grep -qw bc || apt-get install bc
-dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet
+dpkg -l | grep -qw pv || apt-get install pv -y
+dpkg -l | grep -qw bzip2 || apt-get install bzip2 -y
+dpkg -l | grep -qw rsync || apt-get install rsync -y
+dpkg -l | grep -qw bc || apt-get install bc -y
+dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
+	#Check for Plesk installation
+	if dpkg -l | grep -q psa; then
+		dbruser='admin'
+	else
+		dbruser='root'
+	fi
 elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
 htuser='apache'
 htgroup='apache'
-rpm -qa | grep -qw pv || yum install pv
-rpm -qa | grep -qw bc || yum install bc
-rpm -qa | grep -qw bzip2 || yum install bzip2
-rpm -qa | grep -qw rsync || yum install rsync
-rpm -qa | grep -qw php-process || yum install php-process
-rpm -qa | grep -qw xmlstarlet || yum install xmlstarlet
+rpm -qa | grep -qw pv || yum install pv -y
+rpm -qa | grep -qw bc || yum install bc -y
+rpm -qa | grep -qw bzip2 || yum install bzip2 -y
+rpm -qa | grep -qw rsync || yum install rsync -y
+rpm -qa | grep -qw php-process || yum install php-process -y
+rpm -qa | grep -qw xmlstarlet || yum install xmlstarlet -y
+	#Check for Plesk installation
+	if rpm -qa | grep -q psa; then
+		dbruser='admin'
+	else
+		dbruser='root'
+	fi
 elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
 htuser='apache'
 htgroup='apache'
-rpm -qa | grep -qw pv || dnf install pv
-rpm -qa | grep -qw bc || dnf install bc
-rpm -qa | grep -qw bzip2 || dnf install bzip2
-rpm -qa | grep -qw rsync || dnf install rsync
-rpm -qa | grep -qw php-process || dnf install php-process
-rpm -qa | grep -qw xmlstarlet || dnf install xmlstarlet
+rpm -qa | grep -qw pv || dnf install pv -y
+rpm -qa | grep -qw bc || dnf install bc -y
+rpm -qa | grep -qw bzip2 || dnf install bzip2 -y
+rpm -qa | grep -qw rsync || dnf install rsync -y
+rpm -qa | grep -qw php-process || dnf install php-process -y
+rpm -qa | grep -qw xmlstarlet || dnf install xmlstarlet -y
+	#Check for Plesk installation
+	if rpm -qa | grep -q psa; then
+		dbruser='admin'
+	else
+		dbruser='root'
+	fi
 fi
 } &> /dev/null
 
