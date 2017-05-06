@@ -18,10 +18,6 @@ clear
 ######   DEFAULT VAR START   #####
 ##################################
 
-#	Uncomment if you want to set the database root password (useful,
-#	if you want to install multiple instances of Nextcloud)
-#database_root='P@s$w0rd!'
-
 url1="http://example.com"
 ncname="my_nextcloud"
 dbhost=localhost
@@ -71,26 +67,28 @@ cat << EOF
  You can specify some variables before script run.
  E.g. you can set the Nextcloud version or the
  MySQL root password. If no option is set, the
- script will use default variables.
+ script will use default variables and you
+ can set them during script run (you will
+ be asked) :-)
 
-	-h --help	display this help and exit
-	-v --version	specify Nextcloud Version (e.g. 10.0.0)
-	-p --password	sets the MySQL root password. Type -p "P@s§"
-	-r --root	sets the MySQL root user
-	-m --mysqlhost	sets the MySQL Host
-	-n --name	sets the Nextcloud name, used for Database
-	-u --url	sets the URL for Nextcloud installation
-	-d --directory	sets the full installation path
-	-f --folder sets the desired folder (example.com/folder). May be empty
-	-s --smtp	setup SMTP during script run (Type -s "y" or -s "n")
-	-a --apps setup additionals apps during run (Type -a "y" or -a "n")
-	
+ -h --help	display this help and exit
+ -v --version	specify Nextcloud Version (e.g. 10.0.0)
+ -p --password	sets the MySQL root password. Type -p "P@s§"
+ -r --root	sets the MySQL root user
+ -m --mysqlhost	sets the MySQL Host
+ -n --name	sets the Nextcloud name, used for Database
+ -u --url	sets the URL for Nextcloud installation
+ -d --directory	sets the full installation path
+ -f --folder 	sets the desired folder (example.com/folder). May be empty
+ -s --smtp	setup SMTP during script run (Type -s "y" or -s "n")
+ -a --apps 	setup additionals apps during run (Type -a "y" or -a "n")
+
 EOF
 }
 
 while :; do
     case $1 in
-        -h|-\?|--help)   # Call a "show_help" function , then exit.
+        -h|-\?|--help|\?)   # Call "show_help" function , then exit.
         	show_help
 			stty echo
             exit
@@ -273,7 +271,7 @@ sleep 1
 if [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ||
       "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ||
       "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ||
-	  "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
+	  "$os" = "fedora" && ("$ver" = "23" || "$ver" = "24" || "$ver" = "25") ]]; then
 	printf $green"Very Good! Your OS is compatible.\n"$reset
 	echo ""
 	sleep 1
@@ -296,6 +294,13 @@ dpkg -l | grep -qw bzip2 || apt-get install bzip2 -y
 dpkg -l | grep -qw rsync || apt-get install rsync -y
 dpkg -l | grep -qw bc || apt-get install bc -y
 dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
+dpkg -l | grep -qw php-zip || apt-get install php-zip -y
+dpkg -l | grep -qw php-dom || apt-get install php-dom -y
+dpkg -l | grep -qw php-gd || apt-get install php-gd -y
+dpkg -l | grep -qw php-curl || apt-get install php-curl -y
+dpkg -l | grep -qw php-mbstring || apt-get install php-mbstring -y
+dpkg -l | grep -qw curl || apt-get install curl -y
+service apache2 restart
 	#Check for Plesk installation
 	if dpkg -l | grep -q psa; then
 		dbruser='admin'
@@ -306,15 +311,21 @@ dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
 		dbruser='root'
 		htgroup='www-data'
 	fi
+
 elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
 htuser='www-data'
-dpkg -l | grep -qw pv || apt-get install pv -y
-dpkg -l | grep -qw bzip2 || apt-get install bzip2 -y
-dpkg -l | grep -qw rsync || apt-get install rsync -y
-dpkg -l | grep -qw bc || apt-get install bc -y
-dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
+
+apt-get install pv -y
+if dpkg -l | grep -qw bzip2; then echo "bzip2 INSTALLIERT"; else apt-get install bzip2 -y; fi;
+if dpkg -l | grep -qw rsync; then echo "rsync INSTALLIERT"; else apt-get install rsync -y; fi;
+if dpkg -l | grep -qw bc; then echo "bc INSTALLIERT"; else apt-get install bc -y; fi;
+if dpkg -l | grep -qw xmlstarlet; then echo "xmlstarlet INSTALLIERT"; else apt-get install xmlstarlet -y; fi;
+if dpkg -l | grep -qw php5-gd; then echo "php5-gd INSTALLIERT"; else apt-get install php5-gd -y; fi;
+if dpkg -l | grep -qw php5-curl; then echo "php-5curl INSTALLIERT"; else apt-get install php5-curl -y; fi;
+apt-get install curl -y
+service apache2 restart
 	#Check for Plesk installation
-	if dpkg -l | grep -q psa; then
+	if dpkg -l | grep -qw psa; then
 		dbruser='admin'
 		database_root="`cat /etc/psa/.psa.shadow`"
 		htgroup='psacln'
@@ -323,6 +334,7 @@ dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
 		dbruser='root'
 		htgroup='www-data'
 	fi
+
 elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
 htuser='apache'
 rpm -qa | grep -qw pv || yum install pv -y
@@ -331,6 +343,7 @@ rpm -qa | grep -qw bzip2 || yum install bzip2 -y
 rpm -qa | grep -qw rsync || yum install rsync -y
 rpm -qa | grep -qw php-process || yum install php-process -y
 rpm -qa | grep -qw xmlstarlet || yum install xmlstarlet -y
+rpm -qa | grep -qw curl || yum install curl -y
 	#Check for Plesk installation
 	if rpm -qa | grep -q psa; then
 		dbruser='admin'
@@ -349,8 +362,12 @@ rpm -qa | grep -qw bzip2 || dnf install bzip2 -y
 rpm -qa | grep -qw rsync || dnf install rsync -y
 rpm -qa | grep -qw php-process || dnf install php-process -y
 rpm -qa | grep -qw xmlstarlet || dnf install xmlstarlet -y
+rpm -qa | grep -qw curl || dnf install curl -y
+rpm -qa | grep -qw php-zip || dnf install php-zip -y
+rpm -qa | grep -qw php-gd || dnf install php-gd -y
+service httpd restart
 	#Check for Plesk installation
-	if rpm -qa | grep -q psa; then
+	if rpm -qa | grep -qw psa; then
 		dbruser='admin'
 		database_root="`cat /etc/psa/.psa.shadow`"
 		htgroup='psacln'
@@ -361,7 +378,8 @@ rpm -qa | grep -qw xmlstarlet || dnf install xmlstarlet -y
 	fi
 fi
 } &> /dev/null
-if rpm -qa | grep -q psa; then
+
+if [ "$perm" = "plesk" ]; then
 	echo ""
 	printf $cyan"Plesk detected...Setting DB-user and DB-password\n"$reset
 	sleep 2
@@ -567,7 +585,7 @@ function impersonateinstall {
 			xmlstarlet edit -L -u "/info/dependencies/nextcloud[@min-version='12'] [@max-version='12']/@min-version" -v 10 $ncpath/apps/impersonate/appinfo/info.xml
 			sudo -u ${htuser} php $ncpath/occ app:enable impersonate
 		fi
-		}		
+		}
 
 function progress () {
     s=0.75;
