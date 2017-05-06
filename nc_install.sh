@@ -291,7 +291,6 @@ printf $yellow"Installing dependencies...(may take some time)\n"$reset
 {
 if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
 htuser='www-data'
-htgroup='www-data'
 dpkg -l | grep -qw pv || apt-get install pv -y
 dpkg -l | grep -qw bzip2 || apt-get install bzip2 -y
 dpkg -l | grep -qw rsync || apt-get install rsync -y
@@ -300,12 +299,15 @@ dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
 	#Check for Plesk installation
 	if dpkg -l | grep -q psa; then
 		dbruser='admin'
+		database_root="`cat /etc/psa/.psa.shadow`"
+		htgroup='psacln'
+		perm='plesk'
 	else
 		dbruser='root'
+		htgroup='www-data'
 	fi
 elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
 htuser='www-data'
-htgroup='www-data'
 dpkg -l | grep -qw pv || apt-get install pv -y
 dpkg -l | grep -qw bzip2 || apt-get install bzip2 -y
 dpkg -l | grep -qw rsync || apt-get install rsync -y
@@ -314,12 +316,15 @@ dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
 	#Check for Plesk installation
 	if dpkg -l | grep -q psa; then
 		dbruser='admin'
+		database_root="`cat /etc/psa/.psa.shadow`"
+		htgroup='psacln'
+		perm='plesk'
 	else
 		dbruser='root'
+		htgroup='www-data'
 	fi
 elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
 htuser='apache'
-htgroup='apache'
 rpm -qa | grep -qw pv || yum install pv -y
 rpm -qa | grep -qw bc || yum install bc -y
 rpm -qa | grep -qw bzip2 || yum install bzip2 -y
@@ -329,12 +334,15 @@ rpm -qa | grep -qw xmlstarlet || yum install xmlstarlet -y
 	#Check for Plesk installation
 	if rpm -qa | grep -q psa; then
 		dbruser='admin'
+		database_root="`cat /etc/psa/.psa.shadow`"
+		htgroup='psacln'
+		perm='plesk'
 	else
 		dbruser='root'
+		htgroup='apache'
 	fi
 elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
 htuser='apache'
-htgroup='apache'
 rpm -qa | grep -qw pv || dnf install pv -y
 rpm -qa | grep -qw bc || dnf install bc -y
 rpm -qa | grep -qw bzip2 || dnf install bzip2 -y
@@ -344,11 +352,20 @@ rpm -qa | grep -qw xmlstarlet || dnf install xmlstarlet -y
 	#Check for Plesk installation
 	if rpm -qa | grep -q psa; then
 		dbruser='admin'
+		database_root="`cat /etc/psa/.psa.shadow`"
+		htgroup='psacln'
+		perm='plesk'
 	else
 		dbruser='root'
+		htgroup='apache'
 	fi
 fi
 } &> /dev/null
+if rpm -qa | grep -q psa; then
+	echo ""
+	printf $cyan"Plesk detected...Setting DB-user and DB-password\n"$reset
+	sleep 2
+fi
 
 #################################
 ######   BEFORE SETUP END   #####
@@ -1164,7 +1181,10 @@ stty echo
 		printf $redbg"This user does not exist! Enter WWW-User: "$reset
 		read htuser
 	done
-    [  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
+    [  -z "$htuser" ] && htusrstat="$check_miss" || htusrstat="$check_ok"
+	if [ "$perm" = "plesk" ]; then
+	rootuser="$htuser"
+	fi
 
   elif [ "$key3" = "6" ]; then
   echo ""
@@ -1181,6 +1201,9 @@ stty echo
   elif [ "$key3" = "7" ]; then
   echo ""
   stty echo
+  if [ "$perm" = "plesk" ]; then
+	rootuser="$htuser"
+  else
 	echo -n "Enter root user (usually: root): "
 	read rootuser
 	while ! id "$rootuser" >/dev/null 2>&1; do
@@ -1188,6 +1211,7 @@ stty echo
 		read rootuser
 	done
     [  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
+  fi
 
   elif [ "$key3" = "s" ]; then
   stty echo
@@ -1723,6 +1747,15 @@ sleep 1
 ###################
 ##  PERMISSIONS  ##
 ###################
+
+if [ "$perm" = "plesk" ]; then
+	chdir="0755"
+	chfile="0644"
+else
+	chdir="0750"
+	chfile="0640"
+fi
+
 	touch ./nextcloud_permissions.sh
 	cat <<EOF > ./nextcloud_permissions.sh
 #!/bin/bash
@@ -1739,8 +1772,8 @@ mkdir -p $ncpath/data
 mkdir -p $ncpath/assets
 mkdir -p $ncpath/updater
 
-find ${ncpath}/ -type f -print0 | xargs -0 chmod 0640
-find ${ncpath}/ -type d -print0 | xargs -0 chmod 0750
+find ${ncpath}/ -type f -print0 | xargs -0 chmod ${chfile}
+find ${ncpath}/ -type d -print0 | xargs -0 chmod ${chdir}
 
 chown -R ${rootuser}:${htgroup} ${ncpath}
 chown -R ${htuser}:${htgroup} ${ncpath}/apps/
@@ -1766,6 +1799,11 @@ fi
 EOF
 	chmod +x nextcloud_permissions.sh
 	./nextcloud_permissions.sh
+
+if [ "$perm" = "plesk" ]; then
+	chown ${htuser}:psaserv $ncpath
+fi	
+
 	printf $green"Setting permissions completed...\n"$reset
 	echo ""
 	rm -f ./nextcloud_permissions.sh
