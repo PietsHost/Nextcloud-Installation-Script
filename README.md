@@ -54,9 +54,8 @@ If you want to install v9.0.53 for example, use:<br />
 
 ## Notes
 * Tested on CentOS 6.8 & 7.3
-* Tested on openSUSE Leap 42.1
 * Tested on Ubuntu 12.04, 14.04, 16.04
-* Tested on Fedora 23 & 25
+* Tested on Fedora 23, 24 & 25
 * Tested on Debian 7 & 8
 
 I'm sure it will work on every Linux System, even if I haven't tested it yet :)
