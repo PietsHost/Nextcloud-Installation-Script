@@ -16,8 +16,9 @@ You decide, how you want to install Nextcloud on your server. For example you ca
 admin-Username and much more!
 
 Database-Name, Database-password and Admin-password will be generated automatically - due to security reasons.
+You can also specify everything whitin the "default.json"-file. Simply load the JSON-File with "-c" or "--config" parameter!
 
-Now let the script do it's work. 
+Now let the script do it's work.
 
 That's it! Once it's done, visit your website and enjoy Nextcloud!
 
@@ -48,6 +49,7 @@ chmod +x ./nc_install.sh
 	-f --folder sets the desired folder (example.com/folder). May be empty
 	-s --smtp	setup SMTP during script run (Type -s "y" or -s "n")
 	-a --apps setup additionals apps during run (Type -a "y" or -a "n")
+	-c --config	path to JSON config file
 
 If you want to install v9.0.53 for example, use:<br />
 `./nc_install.sh -v 9.0.53` or `./nc_install.sh --version 9.0.53`
