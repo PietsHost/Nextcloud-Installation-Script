@@ -1746,6 +1746,9 @@ else
 	printhead
 	echo ""
 fi
+
+chown ${htuser}:${htgroup} $html
+
 # Get latest nextcloud version
 if [[ -n "$version" ]]; then
 	ncversion=${version}
