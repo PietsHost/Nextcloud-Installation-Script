@@ -6,8 +6,7 @@
 # CentOS 6.8 & 7.3,
 # Ubuntu 12.04, 14.04, 16.04,
 # Debian 7 & 8,
-# Fedora 23 & 25,
-# openSUSE Leap 42.1
+# Fedora 23, 24 & 25,
 #
 
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
@@ -20,8 +19,8 @@ clear
 
 url1="http://example.com"
 ncname="my_nextcloud"
-dbhost=localhost
-dbtype=mysql
+dbhost="localhost"
+dbtype="mysql"
 rootuser='root'
 html='/var/www/html' # full installation path
 folder='nextcloud1'
@@ -45,11 +44,16 @@ skeleton='none'
 default_language='de'
 enable_avatars='true'
 rewritebase='false'
+depend="true"
+overwrite="true"
+isconfig="false"
+config_to_read="default.json"
 
 ################################
 ######   DEFAULT VAR END   #####
 ################################
 
+# Set colors for printf output
 red='\e[31m'
 green='\e[32m'
 yellow='\e[33m'
@@ -82,6 +86,7 @@ cat << EOF
  -f --folder 	sets the desired folder (example.com/folder). May be empty
  -s --smtp	setup SMTP during script run (Type -s "y" or -s "n")
  -a --apps 	setup additionals apps during run (Type -a "y" or -a "n")
+ -c --config	path to JSON config file
 
 EOF
 }
@@ -148,6 +153,19 @@ while :; do
                 exit 1
             fi
             ;;
+		-c|--config)
+			if [ -n "$2" ]; then
+				if [ -f "$2" ]; then
+					config_to_read="$2"
+					isconfig="true"
+			else
+                printf $redbg'ERROR: "--config" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+			fi
+            ;;
 		-u|--url)
 			if [ -n "$2" ]; then
 				url1="$2"
@@ -213,6 +231,7 @@ while :; do
     shift
 done
 
+# Set Header
 header=' _____ _      _         _    _           _
 |  __ (_)    | |       | |  | |         | |
 | |__) |  ___| |_ ___  | |__| | ___  ___| |_
@@ -228,161 +247,354 @@ check_miss=$redbg"MISSING"$reset
 ncrepo="https://download.nextcloud.com/server/releases"
 
 # Must be root
-[[ `id -u` -eq 0 ]] || { echo "Must be root to run script, type: sudo -i"; stty echo; exit 1; }
+[[ `id -u` -eq 0 ]] || { echo "Root privileges required, type: sudo -i"; stty echo; exit 1; }
 
-##########################################################################################
+# Read JSON config file
+function jsonconfig {
+echo "Reading JSON config $config_to_read ..."
+chmod 0644 $config_to_read
+sleep 0.5
+# General - SQL
+dbhost=$(json -f "$config_to_read" general.sql.dbhost)
+dbruser=$(json -f "$config_to_read" general.sql.dbruser)
+dbtype=$(json -f "$config_to_read" general.sql.dbtype)
+database_root=$(json -f "$config_to_read" general.sql.database_root)
+
+# General - HTML
+url1=$(json -f "$config_to_read" general.html.url1)
+ncname=$(json -f "$config_to_read" general.html.ncname)
+html=$(json -f "$config_to_read" general.html.html)
+folder=$(json -f "$config_to_read" general.html.folder)
+
+# General - Perm
+rootuser=$(json -f "$config_to_read" general.perm.rootuser)
+htuser=$(json -f "$config_to_read" general.perm.htuser)
+htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+
+# General - Other
+depend=$(json -f "$config_to_read" general.other.depend)
+rebootsrv=$(json -f "$config_to_read" general.other.rebootsrv)
+overwrite=$(json -f "$config_to_read" general.other.overwrite)
+adminuser=$(json -f "$config_to_read" general.other.adminuser)
+smtp=$(json -f "$config_to_read" general.other.smtp)
+appsinstall=$(json -f "$config_to_read" general.other.appsinstall)
+version=$(json -f "$config_to_read" general.other.version)
+
+# General - E-mail
+email=$(json -f "$config_to_read" general.mail.email)
+smtpauth=$(json -f "$config_to_read" general.mail.smtpauth)
+smtpport=$(json -f "$config_to_read" general.mail.smtpport)
+smtpname=$(json -f "$config_to_read" general.mail.smtpname)
+smtpsec=$(json -f "$config_to_read" general.mail.smtpsec)
+smtppwd=$(json -f "$config_to_read" general.mail.smtppwd)
+smtpauthreq=$(json -f "$config_to_read" general.mail.smtpauthreq)
+smtphost=$(json -f "$config_to_read" general.mail.smtphost)
+smtpdomain=$(json -f "$config_to_read" general.mail.smtpdomain)
+
+# Config - Custom
+displayname=$(json -f "$config_to_read" config.custom.displayname)
+rlchannel=$(json -f "$config_to_read" config.custom.rlchannel)
+memcache=$(json -f "$config_to_read" config.custom.memcache)
+maintenance=$(json -f "$config_to_read" config.custom.maintenance)
+singleuser=$(json -f "$config_to_read" config.custom.singleuser)
+skeleton=$(json -f "$config_to_read" config.custom.skeleton)
+default_language=$(json -f "$config_to_read" config.custom.default_language)
+enable_avatars=$(json -f "$config_to_read" config.custom.enable_avatars)
+rewritebase=$(json -f "$config_to_read" config.custom.rewritebase)
+
+# Config - Apps
+contactsinstall=$(json -f "$config_to_read" apps.integrated.contactsinstall)
+calendarinstall=$(json -f "$config_to_read" apps.integrated.calendarinstall)
+mailinstall=$(json -f "$config_to_read" apps.integrated.mailinstall)
+notesinstall=$(json -f "$config_to_read" apps.integrated.notesinstall)
+tasksinstall=$(json -f "$config_to_read" apps.integrated.tasksinstall)
+galleryinstall=$(json -f "$config_to_read" apps.integrated.galleryinstall)
+
+impinstall=$(json -f "$config_to_read" apps.3rdparty.impinstall)
+echo ""
+}
+printf $green"$header"$reset
+echo ""
+echo ""
+# Read JSON config
+if [[ "$isconfig" = "true" ]]; then
+	begin=$(date +%s) 
+	jsonconfig
+else
+	# Apps
+	contactsinstall='true'
+	calendarinstall='true'
+	mailinstall='false'
+	notesinstall='false'
+	tasksinstall='false'
+	galleryinstall='false'
+	impinstall='false'
+fi
 
 ###################################
 ######   BEFORE SETUP START   #####
 ###################################
 
-printf $green"$header"$reset
-echo ""
-echo ""
+function sleeping {
+if [[ "$isconfig" = "true" ]]; then
+	sleep 1
+else
+	sleep 0.2
+fi
+}
+function sleeping2 {
+if [[ "$isconfig" = "true" ]]; then
+	sleep 2
+else
+	sleep 0.2
+fi
+}
+function abort {
+	echo ""
+	stty echo
+	exit 0
+}
+function plesk {
+dbruser='admin'
+database_root="`cat /etc/psa/.psa.shadow`"
+htgroup='psacln'
+perm='plesk'
+}
 
 printf "Checking minimal system requirements...\n"
 echo ""
-sleep 2
+sleeping
 
 # Ensure the OS is compatible with the installer
 if [ -f /etc/centos-release ]; then
-    os="CentOs"
-    verfull=$(sed 's/^.*release //;s/ (Fin.*$//' /etc/centos-release)
-    ver=${verfull:0:1}
+	os="CentOs"
+	verfull=$(sed 's/^.*release //;s/ (Fin.*$//' /etc/centos-release)
+	ver=${verfull:0:1}
 elif [ -f /etc/lsb-release ]; then
-    os=$(grep DISTRIB_ID /etc/lsb-release | sed 's/^.*=//')
-    ver=$(grep DISTRIB_RELEASE /etc/lsb-release | sed 's/^.*=//')
+	os=$(grep DISTRIB_ID /etc/lsb-release | sed 's/^.*=//')
+	ver=$(grep DISTRIB_RELEASE /etc/lsb-release | sed 's/^.*=//')
 elif [ -f /etc/fedora-release ]; then
 	os=$(grep -w ID /etc/os-release | sed 's/^.*=//')
 	ver=$(grep VERSION_ID /etc/os-release | cut -c 12-)
 elif [ -f /etc/os-release ]; then
-    os=$(grep -w ID /etc/os-release | sed 's/^.*=//')
-    ver=$(grep VERSION_ID /etc/os-release | sed 's/^.*"\(.*\)"/\1/')
+	os=$(grep -w ID /etc/os-release | sed 's/^.*=//')
+	ver=$(grep VERSION_ID /etc/os-release | sed 's/^.*"\(.*\)"/\1/')
  else
-    os=$(uname -s)
-    ver=$(uname -r)
+	os=$(uname -s)
+	ver=$(uname -r)
 fi
 	arch=$(uname -m)
 
 printf $yellow"Detected : $os $ver $arch\n"$reset
 echo ""
-sleep 1
+sleeping
 
 if [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ||
       "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ||
       "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ||
-	  "$os" = "fedora" && ("$ver" = "23" || "$ver" = "24" || "$ver" = "25") ]]; then
+	"$os" = "fedora" && ("$ver" = "23" || "$ver" = "24" || "$ver" = "25") ]]; then
 	printf $green"Very Good! Your OS is compatible.\n"$reset
 	echo ""
-	sleep 1
+	sleeping
 else
-    printf $red"Unfortunately, this OS is not supported by Piet's Host Install-script for Nextcloud.\n"$reset
-    echo ""
-	sleep 2
-	stty echo
-	exit 1
+	printf $red"Unfortunately, this OS is not supported by Piet's Host Install-script for Nextcloud.\n"$reset
+	sleeping2
+	abort
 fi
-sleep 1
+sleeping
 
-printf $yellow"Installing dependencies...(may take some time)\n"$reset
-
-{
 if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
-htuser='www-data'
-dpkg -l | grep -qw pv || apt-get install pv -y
-dpkg -l | grep -qw bzip2 || apt-get install bzip2 -y
-dpkg -l | grep -qw rsync || apt-get install rsync -y
-dpkg -l | grep -qw bc || apt-get install bc -y
-dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
-dpkg -l | grep -qw php-zip || apt-get install php-zip -y
-dpkg -l | grep -qw php-dom || apt-get install php-dom -y
-dpkg -l | grep -qw php-gd || apt-get install php-gd -y
-dpkg -l | grep -qw php-curl || apt-get install php-curl -y
-dpkg -l | grep -qw php-mbstring || apt-get install php-mbstring -y
-dpkg -l | grep -qw curl || apt-get install curl -y
-service apache2 restart
-	#Check for Plesk installation
-	if dpkg -l | grep -q psa; then
-		dbruser='admin'
-		database_root="`cat /etc/psa/.psa.shadow`"
-		htgroup='psacln'
-		perm='plesk'
-	else
+	if [[ "$overwrite" = "true" ]]; then
+		#Check for Plesk installation
+		echo "checking additional control panels..."
+		if dpkg -l | grep -q psa; then
+			plesk
+		fi
+		rootuser='root'
 		dbruser='root'
 		htgroup='www-data'
+		htuser='www-data'
+	else
+		if [[ "$isconfig" = "true" ]]; then
+			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
+			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
+			htuser=$(json -f "$config_to_read" general.perm.htuser)
+			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+		fi
 	fi
 
 elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
-htuser='www-data'
-
-apt-get install pv -y
-if dpkg -l | grep -qw bzip2; then echo "bzip2 INSTALLIERT"; else apt-get install bzip2 -y; fi;
-if dpkg -l | grep -qw rsync; then echo "rsync INSTALLIERT"; else apt-get install rsync -y; fi;
-if dpkg -l | grep -qw bc; then echo "bc INSTALLIERT"; else apt-get install bc -y; fi;
-if dpkg -l | grep -qw xmlstarlet; then echo "xmlstarlet INSTALLIERT"; else apt-get install xmlstarlet -y; fi;
-if dpkg -l | grep -qw php5-gd; then echo "php5-gd INSTALLIERT"; else apt-get install php5-gd -y; fi;
-if dpkg -l | grep -qw php5-curl; then echo "php-5curl INSTALLIERT"; else apt-get install php5-curl -y; fi;
-apt-get install curl -y
-service apache2 restart
-	#Check for Plesk installation
-	if dpkg -l | grep -qw psa; then
-		dbruser='admin'
-		database_root="`cat /etc/psa/.psa.shadow`"
-		htgroup='psacln'
-		perm='plesk'
-	else
+	if [[ "$overwrite" = "true" ]]; then
+		#Check for Plesk installation
+		echo "checking additional control panels..."
+		if dpkg -l | grep -qw psa; then
+			plesk
+		fi
+		rootuser='root'
 		dbruser='root'
 		htgroup='www-data'
+		htuser='www-data'
+	else
+		if [[ "$isconfig" = "true" ]]; then
+			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
+			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
+			htuser=$(json -f "$config_to_read" general.perm.htuser)
+			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+		fi
 	fi
 
 elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
-htuser='apache'
-rpm -qa | grep -qw pv || yum install pv -y
-rpm -qa | grep -qw bc || yum install bc -y
-rpm -qa | grep -qw bzip2 || yum install bzip2 -y
-rpm -qa | grep -qw rsync || yum install rsync -y
-rpm -qa | grep -qw php-process || yum install php-process -y
-rpm -qa | grep -qw xmlstarlet || yum install xmlstarlet -y
-rpm -qa | grep -qw curl || yum install curl -y
-	#Check for Plesk installation
-	if rpm -qa | grep -q psa; then
-		dbruser='admin'
-		database_root="`cat /etc/psa/.psa.shadow`"
-		htgroup='psacln'
-		perm='plesk'
-	else
+	if [[ "$overwrite" = "true" ]]; then
+		#Check for Plesk installation
+		echo "checking additional control panels..."
+		if rpm -qa | grep -q psa; then
+			plesk
+		fi
+		rootuser='root'
 		dbruser='root'
 		htgroup='apache'
+		htuser='apache'
+	else
+		if [[ "$isconfig" = "true" ]]; then
+			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
+			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
+			htuser=$(json -f "$config_to_read" general.perm.htuser)
+			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+		fi
 	fi
+
 elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
-htuser='apache'
-rpm -qa | grep -qw pv || dnf install pv -y
-rpm -qa | grep -qw bc || dnf install bc -y
-rpm -qa | grep -qw bzip2 || dnf install bzip2 -y
-rpm -qa | grep -qw rsync || dnf install rsync -y
-rpm -qa | grep -qw php-process || dnf install php-process -y
-rpm -qa | grep -qw xmlstarlet || dnf install xmlstarlet -y
-rpm -qa | grep -qw curl || dnf install curl -y
-rpm -qa | grep -qw php-zip || dnf install php-zip -y
-rpm -qa | grep -qw php-gd || dnf install php-gd -y
-service httpd restart
-	#Check for Plesk installation
-	if rpm -qa | grep -qw psa; then
-		dbruser='admin'
-		database_root="`cat /etc/psa/.psa.shadow`"
-		htgroup='psacln'
-		perm='plesk'
-	else
+	if [[ "$overwrite" = "true" ]]; then
+		#Check for Plesk installation
+		echo "checking additional control panels..."
+		if rpm -qa | grep -qw psa; then
+			plesk
+		fi
+		rootuser='root'
 		dbruser='root'
 		htgroup='apache'
+		htuser='apache'
+	else
+		if [[ "$isconfig" = "true" ]]; then
+			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
+			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
+			htuser=$(json -f "$config_to_read" general.perm.htuser)
+			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+		fi
+	fi
+fi
+
+if [[ "$depend" = "false" ]]; then
+		printf $yellow"Skipping dependencies check...\n"$reset
+		sleeping
+else
+	echo ""
+	printf $yellow"Installing dependencies...(may take some time)\n"$reset
+{
+if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
+	dpkg -l | grep -qw pv || apt-get install pv -y
+	dpkg -l | grep -qw bzip2 || apt-get install bzip2 -y
+	dpkg -l | grep -qw rsync || apt-get install rsync -y
+	dpkg -l | grep -qw bc || apt-get install bc -y
+	dpkg -l | grep -qw xmlstarlet || apt-get install xmlstarlet -y
+	dpkg -l | grep -qw php-zip || apt-get install php-zip -y
+	dpkg -l | grep -qw php-dom || apt-get install php-dom -y
+	dpkg -l | grep -qw php-gd || apt-get install php-gd -y
+	dpkg -l | grep -qw php-curl || apt-get install php-curl -y
+	dpkg -l | grep -qw php-mbstring || apt-get install php-mbstring -y
+	dpkg -l | grep -qw curl || apt-get install curl -y
+	service apache2 restart
+	if [[ "$overwrite" = "true" ]]; then
+		rootuser='root'
+		dbruser='root'
+		htgroup='www-data'
+		htuser='www-data'
+	else
+		if [[ "$isconfig" = "true" ]]; then
+			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
+			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
+			htuser=$(json -f "$config_to_read" general.perm.htuser)
+			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+		fi
+	fi
+
+elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
+	apt-get install pv -y
+	if dpkg -l | grep -qw bzip2; then echo "bzip2 INSTALLIERT"; else apt-get install bzip2 -y; fi;
+	if dpkg -l | grep -qw rsync; then echo "rsync INSTALLIERT"; else apt-get install rsync -y; fi;
+	if dpkg -l | grep -qw bc; then echo "bc INSTALLIERT"; else apt-get install bc -y; fi;
+	if dpkg -l | grep -qw xmlstarlet; then echo "xmlstarlet INSTALLIERT"; else apt-get install xmlstarlet -y; fi;
+	if dpkg -l | grep -qw php5-gd; then echo "php5-gd INSTALLIERT"; else apt-get install php5-gd -y; fi;
+	if dpkg -l | grep -qw php5-curl; then echo "php-5curl INSTALLIERT"; else apt-get install php5-curl -y; fi;
+	apt-get install curl -y
+	service apache2 restart
+	if [[ "$overwrite" = "true" ]]; then
+		rootuser='root'
+		dbruser='root'
+		htgroup='www-data'
+		htuser='www-data'
+	else
+		if [[ "$isconfig" = "true" ]]; then
+			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
+			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
+			htuser=$(json -f "$config_to_read" general.perm.htuser)
+			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+		fi
+	fi
+
+elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
+	rpm -qa | grep -qw pv || yum install pv -y
+	rpm -qa | grep -qw bc || yum install bc -y
+	rpm -qa | grep -qw bzip2 || yum install bzip2 -y
+	rpm -qa | grep -qw rsync || yum install rsync -y
+	rpm -qa | grep -qw php-process || yum install php-process -y
+	rpm -qa | grep -qw xmlstarlet || yum install xmlstarlet -y
+	rpm -qa | grep -qw curl || yum install curl -y
+	if [[ "$overwrite" = "true" ]]; then
+		rootuser='root'
+		dbruser='root'
+		htgroup='apache'
+		htuser='apache'
+	else
+		if [[ "$isconfig" = "true" ]]; then
+			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
+			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
+			htuser=$(json -f "$config_to_read" general.perm.htuser)
+			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+		fi
+	fi
+
+elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
+	rpm -qa | grep -qw pv || dnf install pv -y
+	rpm -qa | grep -qw bc || dnf install bc -y
+	rpm -qa | grep -qw bzip2 || dnf install bzip2 -y
+	rpm -qa | grep -qw rsync || dnf install rsync -y
+	rpm -qa | grep -qw php-process || dnf install php-process -y
+	rpm -qa | grep -qw xmlstarlet || dnf install xmlstarlet -y
+	rpm -qa | grep -qw curl || dnf install curl -y
+	rpm -qa | grep -qw php-zip || dnf install php-zip -y
+	rpm -qa | grep -qw php-gd || dnf install php-gd -y
+	service httpd restart
+	if [[ "$overwrite" = "true" ]]; then
+		rootuser='root'
+		dbruser='root'
+		htgroup='apache'
+		htuser='apache'
+	else
+		if [[ "$isconfig" = "true" ]]; then
+			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
+			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
+			htuser=$(json -f "$config_to_read" general.perm.htuser)
+			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+		fi
 	fi
 fi
 } &> /dev/null
-
 if [ "$perm" = "plesk" ]; then
 	echo ""
 	printf $cyan"Plesk detected...Setting DB-user and DB-password\n"$reset
-	sleep 2
+	sleeping2
+fi
 fi
 
 #################################
@@ -433,6 +645,8 @@ function checkapps(){
 [  -z "$impinstall" ] && impstat="$check_miss" || impstat="$check_ok"
 }
 
+check
+
 function printhead {
 clear
 printf $green"$header"$reset
@@ -442,11 +656,11 @@ echo ""
 # autoinput on keypress
 readOne () {
 	stty echo
-    local oldstty
-    oldstty=$(stty -g)
-    stty -icanon -echo min 1 time 0
-    dd bs=1 count=1 2>/dev/null
-    stty "$oldstty"
+	local oldstty
+	oldstty=$(stty -g)
+	stty -icanon -echo min 1 time 0
+	dd bs=1 count=1 2>/dev/null
+	stty "$oldstty"
 	stty -echo
 }
 
@@ -454,7 +668,7 @@ function contactsinstall {
 		# Download and install Contacts
 		if [ -d $ncpath/apps/contacts ]
 		then
-			sleep 1
+			sleeping
 		else
 			wget -q $contacs_repo/v$contacs/$contacs_file -P $ncpath/apps
 			tar -zxf $ncpath/apps/$contacs_file -C $ncpath/apps
@@ -467,13 +681,13 @@ function contactsinstall {
 		then
 			sudo -u ${htuser} php $ncpath/occ app:enable contacts
 		fi
-		}
+}
 
 function calendarinstall {
 		# Download and install Calendar
 		if [ -d $ncpath/apps/calendar ]
 		then
-			sleep 1
+			sleeping
 		else
 			wget -q $calendar_repo/v$calendar/$calendar_file -P $ncpath/apps
 			tar -zxf $ncpath/apps/$calendar_file -C $ncpath/apps
@@ -486,13 +700,13 @@ function calendarinstall {
 		then
 			sudo -u ${htuser} php $ncpath/occ app:enable calendar
 		fi
-		}
+}
 
 function mailinstall {
 		# Download and install Mail
 		if [ -d $ncpath/apps/mail ]
 		then
-			sleep 1
+			sleeping
 		else
 			wget -q $mail_repo/v$mail/$mail_file -P $ncpath/apps
 			tar -zxf $ncpath/apps/$mail_file -C $ncpath/apps
@@ -505,13 +719,13 @@ function mailinstall {
 		then
 			sudo -u ${htuser} php $ncpath/occ app:enable mail
 		fi
-		}
+}
 
 function notesinstall {
 		# Download and install Notes
 		if [ -d $ncpath/apps/notes ]
 		then
-			sleep 1
+			sleeping
 		else
 			wget -q $notes_repo/v$notes/$notes_file -P $ncpath/apps
 			tar -zxf $ncpath/apps/$notes_file -C $ncpath/apps
@@ -524,13 +738,13 @@ function notesinstall {
 		then
 			sudo -u ${htuser} php $ncpath/occ app:enable notes
 		fi
-		}
+}
 
 function tasksinstall {
 		# Download and install Tasks
 		if [ -d $ncpath/apps/tasks ]
 		then
-			sleep 1
+			sleeping
 		else
 			wget -q $tasks_repo/v$tasks/$tasks_file -P $ncpath/apps
 			tar -zxf $ncpath/apps/$tasks_file -C $ncpath/apps
@@ -543,13 +757,13 @@ function tasksinstall {
 		then
 			sudo -u ${htuser} php $ncpath/occ app:enable tasks
 		fi
-		}
+}
 
 function galleryinstall {
 		# Download and install Gallery
 		if [ -d $ncpath/apps/gallery ]
 		then
-			sleep 1
+			sleeping
 		else
 			wget -q $gallery_repo/v$gallery/$gallery_file -P $ncpath/apps
 			tar -zxf $ncpath/apps/$gallery_file -C $ncpath/apps
@@ -562,13 +776,13 @@ function galleryinstall {
 		then
 			sudo -u ${htuser} php $ncpath/occ app:enable gallery
 		fi
-		}
+}
 
 function impersonateinstall {
 		# Download and install impersonate
 		if [ -d $ncpath/apps/impersonate ]
 		then
-			sleep 1
+			sleeping
 		else
 			wget -q $impersonate_repo/$impersonate_file -P $ncpath/apps
 			tar -zxf $ncpath/apps/$impersonate_file
@@ -584,31 +798,32 @@ function impersonateinstall {
 			# Set minimum-version to 10 since 12 isn't released yet
 			xmlstarlet edit -L -u "/info/dependencies/nextcloud[@min-version='12'] [@max-version='12']/@min-version" -v 10 $ncpath/apps/impersonate/appinfo/info.xml
 			sudo -u ${htuser} php $ncpath/occ app:enable impersonate
-		fi
+fi
 		}
 
 function progress () {
-    s=0.75;
-    f=0.2;
-    echo -ne "\r\n";
-    while true; do
-           sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [             ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [>            ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-->          ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [--->         ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [---->        ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [----->       ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------>      ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------->     ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-------->    ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [--------->   ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [---------->  ] working: ${s} secs." \
-        && sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-----------> ] working: ${s} secs.";
-           sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------------>] working: ${s} secs.";
+	s=0.75;
+	f=0.2;
+	echo -ne "\r\n";
+	while true; do
+	    sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [             ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [>            ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-->          ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [--->         ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [---->        ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [----->       ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------>      ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------->     ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-------->    ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [--------->   ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [---------->  ] working: ${s} secs." \
+	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-----------> ] working: ${s} secs.";
+	    sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------------>] working: ${s} secs.";
     done;
 }
 
 function smtpsetup(){
+
 clear
 while true; do
   printhead
@@ -633,22 +848,22 @@ stty echo
   echo -en "Enter [1-8], [s] or [q]: ";key2=$(readOne)
 
   if [ "$key2" = "1" ]; then
-  echo ""
-  stty echo
-  	echo -n "Enter Auth-Type (LOGIN, PLAIN, etc): "
+	echo ""
+	stty echo
+	echo -n "Enter Auth-Type (LOGIN, PLAIN, etc): "
 	read smtpauth
-    [  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
+	[  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
 
   elif [ "$key2" = "2" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter SMTP-Host (e.g. yourdomain.com): "
 	read smtphost
 	[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
 
   elif [ "$key2" = "3" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter SMTP-Port (default :587): "
 	read smtpport
 
@@ -660,22 +875,22 @@ stty echo
 	[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
 
   elif [ "$key2" = "4" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter SMTP-Sendername (e.g. admin, info, etc): "
 	read smtpname
 	[  -z "$smtpname" ] && smnamestat="$check_miss" || smnamestat="$check_ok"
 
   elif [ "$key2" = "5" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter SMTP-password: "
 	read smtppwd
 	[  -z "$smtppwd" ] && smpwdstat="$check_miss" || smpwdstat="$check_ok"
 
   elif [ "$key2" = "6" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter SMTP-Security (tls, ssl, none): "
 	read smtpsec
 
@@ -687,54 +902,44 @@ stty echo
 	[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
 
   elif [ "$key2" = "7" ]; then
-  if [ "$smtpauthreq" = "0" ]; then
+	if [ "$smtpauthreq" = "0" ]; then
 		smtpauthreq='1'
 		smauthreqstat="$check_ok"
 		printf $green"SMTP-Authentification enabled\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$smtpauthreq" = "1" ]; then
 		smtpauthreq='0'
 		smauthreqstat="$check_ok"
 		printf $red"SMTP-Authentification disabled\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key2" = "8" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Set SMTP sender Domain (e.g. yourdomain.com): "
 	read smtpdomain
 	[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
 
 
   elif [ "$key2" = "s" ]; then
-  stty echo
-        if [ -z "$smtpauth" ] || [ -z "$smtphost" ] || [ -z "$smtpport" ] || [ -z "$smtpname" ] || [ -z "$smtppwd" ] || [ -z "$smtpsec" ] || [ -z "$smtpauthreq" ] || [ -z "$smtpdomain" ]; then
-        	printf $redbg"One or more variables are undefined. Aborting..."$reset
+	stty echo
+      if [ -z "$smtpauth" ] || [ -z "$smtphost" ] || [ -z "$smtpport" ] || [ -z "$smtpname" ] || [ -z "$smtppwd" ] || [ -z "$smtpsec" ] || [ -z "$smtpauthreq" ] || [ -z "$smtpdomain" ]; then
+		printf $redbg"One or more variables are undefined. Aborting..."$reset
         	sleep 3
         	continue
-        else
-			echo ""
+	else
+		echo ""
         	echo "-----------------------------"
-        break
-        fi
+	break
+	fi
   elif [ "$key2" = "q" ]; then
-  echo ""
-  stty echo
-    exit
+  abort
   fi
 done
 }
 
 function installapps(){
-# Apps
-contactsinstall='true'
-calendarinstall='true'
-mailinstall='false'
-notesinstall='false'
-tasksinstall='false'
-galleryinstall='false'
-impinstall='false'
 
 checkapps
 
@@ -765,12 +970,12 @@ if [ "$key5" = "1" ]; then
 		contactsinstall='false'
 		contactsstat="$check_ok"
 		printf $red"contacts installation turned off\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$contactsinstall" = "false" ]; then
 		contactsinstall='true'
 		contactsstat="$check_ok"
 		printf $green"contacs installation turned on\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key5" = "2" ]; then
@@ -778,12 +983,12 @@ if [ "$key5" = "1" ]; then
 		calendarinstall='false'
 		calendarstat="$check_ok"
 		printf $red"calendar installation turned off\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$calendarinstall" = "false" ]; then
 		calendarinstall='true'
 		calendarstat="$check_ok"
 		printf $green"calendar installation turned on\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key5" = "3" ]; then
@@ -791,12 +996,12 @@ if [ "$key5" = "1" ]; then
 		mailinstall='false'
 		mailstat="$check_ok"
 		printf $red"mail installation turned off\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$mailinstall" = "false" ]; then
 		mailinstall='true'
 		mailstat="$check_ok"
 		printf $green"mail installation turned on\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key5" = "4" ]; then
@@ -804,12 +1009,12 @@ if [ "$key5" = "1" ]; then
 		notesinstall='false'
 		notesstat="$check_ok"
 		printf $red"notes installation turned off\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$notesinstall" = "false" ]; then
 		notesinstall='true'
 		notesstat="$check_ok"
 		printf $green"notes installation turned on\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key5" = "5" ]; then
@@ -817,12 +1022,12 @@ if [ "$key5" = "1" ]; then
 		tasksinstall='false'
 		tasksstat="$check_ok"
 		printf $red"tasks installation turned off\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$tasksinstall" = "false" ]; then
 		tasksinstall='true'
 		tasksstat="$check_ok"
 		printf $green"tasks installation turned on\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key5" = "6" ]; then
@@ -830,12 +1035,12 @@ if [ "$key5" = "1" ]; then
 		galleryinstall='false'
 		gallerystat="$check_ok"
 		printf $red"gallery installation turned off\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$galleryinstall" = "false" ]; then
 		galleryinstall='true'
 		gallerystat="$check_ok"
 		printf $green"gallery installation turned on\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key5" = "7" ]; then
@@ -843,12 +1048,12 @@ if [ "$key5" = "1" ]; then
 		impinstall='false'
 		impstat="$check_ok"
 		printf $red"impersonate installation turned off\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$impinstall" = "false" ]; then
 		impinstall='true'
 		impstat="$check_ok"
 		printf $green"impersonate installation turned on\n"$reset
-		sleep 1
+		sleeping
 	fi
 
 	elif [ "$key5" = "s" ]; then
@@ -858,13 +1063,11 @@ if [ "$key5" = "1" ]; then
         	sleep 3
         	continue
         else
-        	echo "-----------------------------"
+		echo "-----------------------------"
         break
         fi
   elif [ "$key5" = "q" ]; then
-  echo ""
-  stty echo
-    exit
+	abort
   fi
 done
 }
@@ -911,6 +1114,10 @@ stty echo
 # clear user input
 read -t 1 -n 100 discard
 
+if [[ "$isconfig" = "true" ]]; then
+	sleeping2
+else
+
 printhead
 echo ""
 
@@ -937,22 +1144,20 @@ echo ""
   echo "------+------------------------------------------+------"
   echo "      |                                          |"
   echo "------+------------------------------------------+------"
+	read -n1 -r -p "      |   Press any key to continue...           | " key
 
-read -n1 -r -p "      |   Press any key to continue...           | " key
-
-if [ "$key" = '' ]; then
-	return
+	if [ "$key" = '' ]; then
+		return
+	fi
 fi
 echo ""
 stty -echo
 printhead
 echo ""
 
-#################################
-######   INITIALIZATION    ######
-#################################
-
-##########################################################################################
+####################################
+######   INITIALIZATION END   ######
+####################################
 
 ###################################
 ######   Setup Page 1 Start   #####
@@ -963,11 +1168,15 @@ regexmail="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a
 regexhttps='(https|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
 stty echo
 
-check
-clear
-while true; do
-  printhead
-echo ""
+if [[ "$isconfig" = "true" ]]; then
+	echo ""
+	echo "Skipping Page 1"
+else
+	check
+	clear
+	while true; do
+	printhead
+	echo ""
 
   echo "--------------------------------------------------------------------------"
   echo "                    Setup			Page 1/3"
@@ -988,8 +1197,8 @@ echo ""
   echo -n "Enter [1-6], [s] or [q]: ";key1=$(readOne)
 
   if [ "$key1" = "1" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
   	echo -n "Enter url (with http:// or https://): "
 	read url1
 
@@ -1007,20 +1216,20 @@ echo ""
 	else
 		printf $redbg"Wrong input format. Enter a valid URL..."$reset
 		url1="http://example.com"
-        sleep 3
-        continue
+		sleep 3
+		continue
 	fi
 
   elif [ "$key1" = "2" ]; then
-  echo ""
+	echo ""
   stty echo
 	echo -n "Enter name: "
 	read ncname
 	[  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
 
   elif [ "$key1" = "3" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter html-directory (e.g. /var/www/html): "
 	read html
 
@@ -1032,81 +1241,81 @@ echo ""
 	[ -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
 
   elif [ "$key1" = "4" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter folder name (Leave empty, if you want to install to root directory): "
 	read folder
 	[ "$folder" ] && folderstat="$check_ok"
 
   elif [ "$key1" = "5" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter Database-Type (e.g. mysql, sqlite, etc.): "
 	read dbtype
 	[  -z "$dbtype" ] && dbtypestat="$check_miss" || dbtypestat="$check_ok"
 
   elif [ "$key1" = "6" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter Database-Host (e.g. localhost): "
 	read dbhost
 	[ -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
 
   elif [ "$key1" = "s" ]; then
-  stty echo
-        if [ -z "$url1" ] || [ -z "$ncname" ] || [ -z "$html" ] || [ -z "$dbtype" ] || [ -z "$dbhost" ]; then
-        	printf $redbg"One or more variables are undefined. Aborting..."$reset
-        	sleep 3
-        	continue
-        else
+	stty echo
+		if [ -z "$url1" ] || [ -z "$ncname" ] || [ -z "$html" ] || [ -z "$dbtype" ] || [ -z "$dbhost" ]; then
+			printf $redbg"One or more variables are undefined. Aborting..."$reset
+			sleep 3
+			continue
+		else
 			echo ""
-        	echo "-----------------------------"
-        break
-        fi
+			echo "-----------------------------"
+  break
+  fi
   elif [ "$key1" = "q" ]; then
-  echo ""
-  stty echo
-    exit
+	abort
   fi
 done
+fi
 stty -echo
 standardpath=$html/nextcloud
 ncpath=$html/$folder
-sleep 1
+sleeping
 #################################
 ######   Setup Page 1 End   #####
 #################################
 
-# Check if Nextcloud is already installed installed.
+# Check if Nextcloud is already installed.
 
 if [ -f "$ncpath/occ" ]; then
 	chmod +x $ncpath/occ
 	CURRENTVERSION=$(sudo -u $htuser php $ncpath/occ status | grep "versionstring" | awk '{print $3}')
 	echo ""
-    printf $redbg"Nextcloud is already installed...\n"$reset
+	printf $redbg"Nextcloud is already installed...\n"$reset
 	echo ""
 	echo "If your version isn't up to date make use of the Piet's Host ncupdate-script."
 	echo ""
-	sleep 2
-	stty echo
-    exit 0
+	sleeping2
+	abort
 else
 	echo ""
-    printf $green"No Nextcloud installation found! Installing continues...\n"$reset
+	printf $green"No Nextcloud installation found! Installing continues...\n"$reset
 	echo ""
-	sleep 2
+	sleeping2
 fi
 stty echo
 
 ###################################
 ######   Setup Page 2 Start   #####
 ###################################
-
-clear
-while true; do
-  printhead
-echo ""
-stty echo
+if [[ "$isconfig" = "true" ]]; then
+	echo "Skipping Page 2"
+	else
+	clear
+	while true; do
+	printhead
+	echo ""
+	stty echo
   echo "--------------------------------------------------------------------------"
   echo "                    Setup			Page 2/3"
   echo "------+------------+------------------+------------------------------------"
@@ -1127,8 +1336,8 @@ stty echo
   echo -en "Enter [1-7], [s] or [q]: ";key3=$(readOne)
 
   if [ "$key3" = "1" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
   	echo -n "Enter your E-mail: "
 	read email
 
@@ -1138,13 +1347,13 @@ stty echo
 	else
 		printf $redbg"Wrong input format. Enter a valid email address..."$reset
 		email='mail@example.com'
-        sleep 3
-        continue
+		sleep 3
+		continue
 	fi
 
   elif [ "$key3" = "2" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Please enter desired admin username for Nextcloud: "
 	read adminuser
 
@@ -1163,92 +1372,91 @@ stty echo
 	shopt -u nocasematch
 
   elif [ "$key3" = "3" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Please enter Database Root username: "
 	read dbruser
 	[  -z "$dbruser" ] && dbusrstat="$check_miss" || dbusrstat="$check_ok"
 
   elif [ "$key3" = "4" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Please enter password for database root account (won't be stored): "
 	read database_root
 
 	# function check MySQL Login
 	function mysqlcheck () {
 	if [[ "dbhost" = "localhost" ]]; then
-	mysql -u $dbruser -p$database_root  -e ";"
+		mysql -u $dbruser -p$database_root  -e ";"
 	else
-	mysql -u $dbruser -p$database_root -h $dbhost -e ";"
+		mysql -u $dbruser -p$database_root -h $dbhost -e ";"
 	fi
 	} &> /dev/null
 
 	while ! mysqlcheck ; do
-	printf $redbg"Wrong password! Please enter the MySQL root password!: "$reset
-       read database_root
+		printf $redbg"Wrong password! Please enter the MySQL root password!: "$reset
+		read database_root
 	done
 	[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"
 
   elif [ "$key3" = "5" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter WWW-User (e.g. apache, apache2, etc.): "
 	read htuser
 	while ! id "$htuser" >/dev/null 2>&1; do
 		printf $redbg"This user does not exist! Enter WWW-User: "$reset
 		read htuser
 	done
-    [  -z "$htuser" ] && htusrstat="$check_miss" || htusrstat="$check_ok"
+	[  -z "$htuser" ] && htusrstat="$check_miss" || htusrstat="$check_ok"
 	if [ "$perm" = "plesk" ]; then
-	rootuser="$htuser"
+		rootuser="$htuser"
 	fi
 
   elif [ "$key3" = "6" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter WWW-Group (e.g. apache, www-data, etc.): "
 	read htgroup
 
-   while ! grep -q $htgroup /etc/group >/dev/null 2>&1; do
-    printf $redbg"This user does not exist! Enter WWW-Group: "$reset
+	while ! grep -q $htgroup /etc/group >/dev/null 2>&1; do
+		printf $redbg"This user does not exist! Enter WWW-Group: "$reset
 		read htgroup
 	done
-    [  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
+	[  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
 
   elif [ "$key3" = "7" ]; then
-  echo ""
-  stty echo
-  if [ "$perm" = "plesk" ]; then
-	rootuser="$htuser"
-  else
-	echo -n "Enter root user (usually: root): "
-	read rootuser
-	while ! id "$rootuser" >/dev/null 2>&1; do
-		printf $redbg"This user does not exist! Enter root user: "$reset
+	echo ""
+	stty echo
+	if [ "$perm" = "plesk" ]; then
+		rootuser="$htuser"
+	else
+		echo -n "Enter root user (usually: root): "
 		read rootuser
-	done
-    [  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
-  fi
+		while ! id "$rootuser" >/dev/null 2>&1; do
+			printf $redbg"This user does not exist! Enter root user: "$reset
+			read rootuser
+		done
+	[  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
+	fi
 
   elif [ "$key3" = "s" ]; then
-  stty echo
-        if [ -z "$email" ] || [ -z "$htuser" ] || [ -z "$htgroup" ] || [ -z "$rootuser" ] || [ -z "$dbruser" ] || [ -z "$adminuser" ] || [ -z "$database_root" ]; then
-        	printf $redbg"One or more variables are undefined. Aborting..."$reset
+	stty echo
+	if [ -z "$email" ] || [ -z "$htuser" ] || [ -z "$htgroup" ] || [ -z "$rootuser" ] || [ -z "$dbruser" ] || [ -z "$adminuser" ] || [ -z "$database_root" ]; then
+		printf $redbg"One or more variables are undefined (Page 2). Aborting..."$reset
         	sleep 3
         	continue
-        else
-			echo ""
+	else
+		echo ""
         	echo "-----------------------------"
-        break
-        fi
+	break
+	fi
   elif [ "$key3" = "q" ]; then
-  echo ""
-  stty echo
-    exit
+	abort
   fi
 done
-sleep 1
+fi
+sleeping
 #################################
 ######   Setup Page 2 End   #####
 #################################
@@ -1256,12 +1464,15 @@ sleep 1
 ###################################
 ######   Setup Page 3 Start   #####
 ###################################
-
-clear
-while true; do
-  printhead
-echo ""
-stty echo
+if [[ "$isconfig" = "true" ]]; then
+	echo ""
+	echo "Skipping Page 3"
+else
+	clear
+	while true; do
+	printhead
+	echo ""
+	stty echo
   echo "--------------------------------------------------------------------------"
   echo "                    Setup			Page 3/3"
   echo "------+------------+-------------------------------+-----------------------"
@@ -1286,17 +1497,17 @@ stty echo
 		displayname='false'
 		dpnamestat="$check_ok"
 		printf $red"allow change of display name set to false\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$displayname" = "false" ]; then
 		displayname='true'
 		dpnamestat="$check_ok"
 		printf $green"allow change of display name set to true\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key4" = "2" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "The channel that Nextcloud should use to look for updates (daily, beta, stable, production) "
 	read rlchannel
 
@@ -1307,14 +1518,14 @@ stty echo
 	else
 		printf $redbg"Wrong input format. Please type daily, beta, stable or production..."$reset
 		rlchannel='stable'
-        sleep 3
-        continue
+		sleep 3
+		continue
 	fi
 	shopt -u nocasematch
 
   elif [ "$key4" = "3" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Do you want to use memcache? (none, APCu): "
 	read memcache
 
@@ -1325,8 +1536,8 @@ stty echo
 	else
 		printf $redbg"Wrong input format. Please type none or APCu..."$reset
 		memcache='none'
-        sleep 3
-        continue
+		sleep 3
+		continue
 	fi
 	shopt -u nocasematch
 
@@ -1335,12 +1546,12 @@ stty echo
 		maintenance='false'
 		maintstat="$check_ok"
 		printf $red"maintenance mode set to false\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$maintenance" = "false" ]; then
 		maintenance='true'
 		maintstat="$check_ok"
 		printf $green"maintenance mode set to true\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key4" = "5" ]; then
@@ -1348,17 +1559,17 @@ stty echo
 		singleuser='false'
 		singlestat="$check_ok"
 		printf $red"singleuser mode set to false\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$singleuser" = "false" ]; then
 		singleuser='true'
 		singlestat="$check_ok"
 		printf $green"singleuser mode set to true\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key4" = "6" ]; then
-  echo ""
-  stty echo
+	echo ""
+	stty echo
 	echo -n "Enter custom skeleton directory or type none for default: "
 	read skeleton
 
@@ -1379,57 +1590,56 @@ stty echo
 		fi
 	fi
 
-	elif [ "$key4" = "7" ]; then
+  elif [ "$key4" = "7" ]; then
 	echo ""
 	stty echo
 	echo -n "Enter default language (e.g. de, en, fr, etc..): "
 	read default_language
 	[  -z "$default_language" ] && langstat="$check_miss" || langstat="$check_ok"
 
-	elif [ "$key4" = "8" ]; then
+  elif [ "$key4" = "8" ]; then
 	if [ "$enable_avatars" = "true" ]; then
 		enable_avatars='false'
 		enavastat="$check_ok"
 		printf $red"enable avatars set to false\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$enable_avatars" = "false" ]; then
 		enable_avatars='true'
 		enavastat="$check_ok"
 		printf $green"enable avatars set to true\n"$reset
-		sleep 1
+		sleeping
 	fi
 
-	elif [ "$key4" = "9" ]; then
+  elif [ "$key4" = "9" ]; then
 	if [ "$rewritebase" = "true" ]; then
 		rewritebase='false'
 		rewritestat="$check_ok"
 		printf $red"RewriteBase disabled\n"$reset
-		sleep 1
+		sleeping
 	elif [ "$rewritebase" = "false" ]; then
 		rewritebase='true'
 		rewritestat="$check_ok"
 		printf $green"RewriteBase enabled\n"$reset
-		sleep 1
+		sleeping
 	fi
 
   elif [ "$key4" = "s" ]; then
-  echo ""
-  stty echo
-        if [ -z "$rlchannel" ] || [ -z "$memcache" ]; then
-        	printf $redbg"One or more variables are undefined. Aborting..."$reset
-			sleep 3
+	echo ""
+	stty echo
+	if [ -z "$rlchannel" ] || [ -z "$memcache" ]; then
+		printf $redbg"One or more variables are undefined (Page 3). Aborting..."$reset
+		sleep 3
         	continue
-        else
-			echo ""
+	else
+		echo ""
         	echo "-----------------------------"
-        break
-        fi
+	break
+  fi
   elif [ "$key4" = "q" ]; then
-  echo ""
-  stty echo
-    exit
+	abort
   fi
 done
+fi
 #################################
 ######   Setup Page 3 End   #####
 #################################
@@ -1439,28 +1649,39 @@ done
 #################################
 
 # ask for SMTP-Setup
-printhead
-if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
+if [[ "$isconfig" = "true" ]]; then
+	echo ""
+	echo "Skipping SMTP-Setup"
+	if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
+		printhead
+		echo ""
+		smtpsetup
+	fi
+elif [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
+	printhead
 	echo ""
 	smtpsetup
 elif [ "$smtp" == "n" ] || [ "$smtp" == "N" ]; then
 	printhead
 	echo ""
 	printf "Skipping SMTP Setup..."
-	sleep 1
+	sleeping
 elif [ -z "$smtp" ]; then
+	printhead
 	echo ""
 	echo -en "Do you want to setup SMTP (y/n)? ";smtp=$(readOne)
 	if [ "$smtp" == "y" ] || [ "$smtp" == "Y" ]; then
+		printhead
+		echo ""
 		smtpsetup
 	else
 		printhead
 		echo ""
 		printf "Skipping SMTP Setup..."
-		sleep 1
+		sleeping
 	fi
 fi
-sleep 1
+sleeping
 ###############################
 ######   SMTP-Setup End   #####
 ###############################
@@ -1470,8 +1691,16 @@ sleep 1
 #################################
 
 # ask for Apps-Setup
-printhead
-if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
+if [[ "$isconfig" = "true" ]]; then
+	echo ""
+	echo "Skipping Apps-Setup"
+	sleeping
+	if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
+		echo ""
+		installapps
+	fi
+elif [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
+	printhead
 	echo ""
 	installapps
 elif [ "$appsinstall" == "n" ] || [ "$appsinstall" == "N" ]; then
@@ -1485,9 +1714,9 @@ elif [ "$appsinstall" == "n" ] || [ "$appsinstall" == "N" ]; then
 	printhead
 	echo ""
 	printf "Skipping Apps Setup..."
-	sleep 1
-
+	sleeping
 elif [ -z "$appsinstall" ]; then
+	printhead
 	echo ""
 	echo -en "Do you want to setup additional Apps (y/n)? ";appsinstall=$(readOne)
 	if [ "$appsinstall" == "y" ] || [ "$appsinstall" == "Y" ]; then
@@ -1503,7 +1732,7 @@ elif [ -z "$appsinstall" ]; then
 		printhead
 		echo ""
 		printf "Skipping Apps Setup..."
-		sleep 1
+		sleeping
 	fi
 fi
 stty -echo
@@ -1511,9 +1740,12 @@ stty -echo
 ###############################
 ######   Apps-Setup End   #####
 ###############################
-
-printhead
-echo ""
+if [[ "$isconfig" = "true" ]]; then
+	echo ""
+else
+	printhead
+	echo ""
+fi
 # Get latest nextcloud version
 if [[ -n "$version" ]]; then
 	ncversion=${version}
@@ -1527,86 +1759,150 @@ fi
 echo ""
 wget -q -T 10 -t 2 $ncrepo/nextcloud-$ncversion.tar.bz2 > /dev/null
 if [ $? -eq 0 ]; then
-    printf $ugreen"SUCCESS!\n"$reset
-	sleep 1
+	printf $ugreen"SUCCESS!\n"$reset
+	sleeping
 	rm -f nextcloud-$ncversion.tar.bz2
 else
-    printf $lightred"Nextcloud version ${version} doesn't exist.\n"$reset
+	printf $lightred"Nextcloud version ${version} doesn't exist.\n"$reset
 	echo ""
-    printf "Please check available versions here: ${ugreen}${ncrepo}\n"$reset
-    echo ""
-	stty echo
-    exit 1
+	printf "Please check available versions here: ${ugreen}${ncrepo}\n"$reset
+	abort
 fi
 
 # Check if variables are set
-if [ -z "$html" ] || [ -z "$ncpath" ] || [ -z "$ncname" ] || [ -z "$dbhost" ] || [ -z "$dbtype" ] || [ -z "$htuser" ] || [ -z "$htgroup" ] || [ -z "$rootuser" ] || [ -z "$standardpath" ] || [ -z "$ncrepo" ] || [ -z "$ncversion" ];
-then
-
+if [ -z "$html" ] || [ -z "$ncpath" ] || [ -z "$ncname" ] || [ -z "$dbhost" ] || [ -z "$dbtype" ] || [ -z "$htuser" ] || [ -z "$htgroup" ] || [ -z "$rootuser" ] || [ -z "$standardpath" ] || [ -z "$ncrepo" ] || [ -z "$ncversion" ]; then
 	echo ""
-	printf $redbg"One or more variables are undefined. Aborting...\n"$reset
+	printf $redbg"One or more variables are undefined (ALL). Aborting...\n"$reset
 	echo ""
-	sleep 1
-	stty echo
-	exit 0
+	sleeping
+	abort
+elif [ -z "$url1" ] || [ -z "$ncname" ] || [ -z "$html" ] || [ -z "$dbtype" ] || [ -z "$dbhost" ]; then
+	printf $redbg"One or more variables are undefined (HTML/DB Parameters). Aborting..."$reset
+	sleeping
+	abort
+elif [ -z "$rlchannel" ] || [ -z "$memcache" ] || [ -z "$displayname" ] || [ -z "$maintenance" ] || [ -z "$singleuser" ] || [ -z "$skeleton" ] || [ -z "$default_language" ] || [ -z "$enable_avatars" ] || [ -z "$rewritebase" ]; then
+	printf $redbg"One or more variables are undefined (config Parameters) . Aborting..."$reset
+	sleeping
+	abort
 else
 
 # Install Warning
+if [[ "$isconfig" = "true" ]]; then
+	echo ""
+	echo "Performing install now"
+	sleeping
+
+################################
+######   Check variables   #####
+################################
+if ! [[ "$smtpport" =~ ^[0-9]+$ ]]; then
+	echo ""
+	printf $redbg"Wrong SMTP Port format, only numbers allowed. Aborting...\n"$reset
+	abort
+fi
+if ! [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; then
+	echo ""
+	printf $redbg"Wrong SMTP type. Aborting...\n"$reset
+	abort
+fi
+if ! [[ $url1 =~ $regex ]]; then
+	echo ""
+	printf $redbg"Wrong input format. No valid URL found. Aborting...\n"$reset
+	abort
+fi
+if ! [[ -d $html ]]; then
+	echo ""
+	printf $redbg"HTML directory does not exist. Aborting...\n"$reset
+	abort
+fi
+if ! [[ $email =~ $regexmail ]]; then
+	echo ""
+	printf $redbg"Wrong E-Mail format. Aborting...\n"$reset
+	abort
+fi
+# function check MySQL Login
+function mysqlcheck () {
+if [[ "dbhost" = "localhost" ]]; then
+	mysql -u $dbruser -p$database_root  -e ";"
+else
+	mysql -u $dbruser -p$database_root -h $dbhost -e ";"
+fi
+} &> /dev/null
+if ! mysqlcheck ; then
+	echo ""
+	printf $redbg"Database Connection couldn't be established... Aborting\n"$reset
+	abort
+fi
+if ! id "$htuser" >/dev/null 2>&1; then
+	echo ""
+	printf $redbg"WWW-User $htuser does not exist. Aborting...\n"$reset
+	abort
+fi
+if ! id "$rootuser" >/dev/null 2>&1; then
+	echo ""
+	printf $redbg"rootuser $rootuser does not exist. Aborting...\n"$reset
+	abort
+fi
+if ! grep -q $htgroup /etc/group; then
+	echo ""
+	printf $redbg"WWW-Group $htgroup does not exist. Aborting...\n"$reset
+	abort
+fi
+
+else
 echo ""
 echo "Performing install in 5 seconds.."
 echo ""
 printf "  |====>               |   (20%%)\r"
-sleep 1
+sleeping
 printf "  |=======>            |   (40%%)\r"
-sleep 1
+sleeping
 printf "  |===========>        |   (60%%)\r"
-sleep 1
+sleeping
 printf "  |===============>    |   (80%%)\r"
-sleep 1
+sleeping
 printf "  |===================>|   (100%%)\r"
 printf "\n"
 fi
-
+fi
 ####################
 ##  INSTALLATION  ##
 ####################
 
 # Download latest Nextcloud-Files
-	echo ""
-	echo "Downloading $ncrepo/nextcloud-$ncversion.tar.bz2..."
+echo ""
+echo "Downloading $ncrepo/nextcloud-$ncversion.tar.bz2..."
 echo ""
 wget -q -T 10 -t 2 $ncrepo/nextcloud-$ncversion.tar.bz2 -P $html
 
 # Check if download completed successfully
-if [ -f $html/nextcloud-$ncversion.tar.bz2 ]
-then
-    printf "Download of nextcloud-$ncversion.tar.bz2 ${green}successfull\n"$reset
+if [ -f $html/nextcloud-$ncversion.tar.bz2 ]; then
+	printf "Download of nextcloud-$ncversion.tar.bz2 ${green}successfull\n"$reset
 	echo ""
 else
-    echo "Oh no! Something went wrong with the download"
-	stty echo
-	exit 1
+	echo "Oh no! Something went wrong with the download"
+	abort
 fi
 
 # Extract files and move into right folder
 printf $yellow"Files are being extracted... \n"$reset
 echo ""
-	mkdir -p "$ncpath"
-	pv -w 80 $html/nextcloud-$ncversion.tar.bz2 | tar xjf - -C $html
+mkdir -p "$ncpath"
+pv -w 80 $html/nextcloud-$ncversion.tar.bz2 | tar xjf - -C $html
 
-	{
-	mv $standardpath/* $ncpath/
-	mv $standardpath/.* $ncpath/
-	} &> /dev/null
+{
+mv $standardpath/* $ncpath/
+mv $standardpath/.* $ncpath/
+} &> /dev/null
 
-	rm -f $html/nextcloud-$ncversion.tar.bz2
-	rm -rf $standardpath
-	sleep 1
+rm -f $html/nextcloud-$ncversion.tar.bz2
+rm -rf $standardpath
+sleeping
 
-	echo ""
-	printf $green"Extract completed.\n"$reset
-	echo ""
-	sleep 1
+echo ""
+printf $green"Extract completed.\n"$reset
+echo ""
+sleeping
 
 printhead
 echo ""
@@ -1614,8 +1910,8 @@ echo ""
 ##  PASSWORD-GEN  ##
 ####################
 
-	printf $yellow"Let's do some magic... Generating usernames and passwords..\n"$reset
-	echo ""
+printf $yellow"Let's do some magic... Generating usernames and passwords..\n"$reset
+echo ""
 
 # Generate random Database-username
 function vowel() {
@@ -1633,7 +1929,7 @@ dbuser2=${ncname}_${dbuser1}
 
 # Limit dbuser to 16 characters
 dbuser=${dbuser2:0:16}
-sleep 1
+sleeping
 
 dbname1=`consonant; vowel; consonant; vowel; consonant; vowel; consonant`
 dbname="${ncname}_${dbname1}"
@@ -1660,20 +1956,17 @@ adminpwd="$({
         choose '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
      done
  } | sort -R | awk '{printf "%s",$1}')"
-sleep 1
+sleeping
 printf $green"Done!\n"$reset
 echo ""
-sleep 1
+sleeping
 
 if [ -z "$dbtype" ] || [ -z "$dbname" ] || [ -z "$dbuser" ] || [ -z "$dbpwd" ] || [ -z "$dbhost" ] || [ -z "$adminuser" ] || [ -z "$adminpwd" ] || [ -z "$ncpath" ] || [ -z "$ncname" ];
 then
-
 	echo ""
 	printf $redbg"One or more variables are undefined. Aborting..."$reset
-	echo ""
-	sleep 1
-	stty echo
-	exit 0
+	sleeping
+	abort
 else
 
 #################
@@ -1684,23 +1977,23 @@ echo ""
 {
 if [[ "dbhost" = "localhost" ]]; then
 	mysql -u $dbruser -p$database_root -e "CREATE DATABASE $dbname"
-	mysql -u $dbruser -p$database_root -e "CREATE DATABASE $dbname CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci"
-	sleep 1
+	#mysql -u $dbruser -p$database_root -e "CREATE DATABASE $dbname CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci"
+	sleeping
 	mysql -u $dbruser -p$database_root -e "USE $dbname"
-	sleep 1
+	sleeping
 	mysql -u $dbruser -p$database_root -e "GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'localhost' IDENTIFIED BY '$dbpwd'"
-	sleep 1
+	sleeping
 else
 	mysql -u $dbruser -p$database_root -h $dbhost -e "CREATE DATABASE $dbname"
-	sleep 1
+	sleeping
 	mysql -u $dbruser -p$database_root -h $dbhost -e "USE $dbname"
-	sleep 1
+	sleeping
 	mysql -u $dbruser -p$database_root -h $dbhost -e "GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'%' IDENTIFIED BY '$dbpwd'"
-	sleep 1
+	sleeping
 fi
 } &> /dev/null
 printf $green"Done! Continuing..\n"$reset
-sleep 1
+sleeping
 
 ##################
 ##  AUTOCONFIG  ##
@@ -1708,7 +2001,7 @@ sleep 1
 echo ""
 printf $yellow"Creating Autoconfig...\n"$reset
 echo ""
-sleep 2
+sleeping2
 
 # remove http:// and https:// from url to match trusted_domains requirements
 url2=${url1#*//}
@@ -1739,28 +2032,24 @@ $AUTOCONFIG = array(
     0 => "$url2",
   ),
   'overwrite.cli.url' => "$url1",
-  'default_language' => 'de',
+  'default_language' => "$default_language",
 );
 EOF
 fi
 
 # Check if any variable is empty - If true, print error and exit
-if [ -z "$ncpath" ] || [ -z "$rootuser" ] || [ -z "$htuser" ] || [ -z "$htgroup" ];
-then
-
+if [ -z "$ncpath" ] || [ -z "$rootuser" ] || [ -z "$htuser" ] || [ -z "$htgroup" ]; then
 	echo ""
 	printf $redbg"One or more variables are undefined. Aborting...\n"$reset
-	echo ""
-	sleep 1
-	stty echo
-	exit 0
+	sleeping
+	abort
 else
-printf $green"Done!\n"$reset
-echo ""
-sleep 1
-printf $yellow"Setting correct permissions...\n"$reset
-echo ""
-sleep 1
+	printf $green"Done!\n"$reset
+	echo ""
+	sleeping
+	printf $yellow"Setting correct permissions...\n"$reset
+	echo ""
+	sleeping
 
 ###################
 ##  PERMISSIONS  ##
@@ -1773,7 +2062,6 @@ else
 	chdir="0750"
 	chfile="0640"
 fi
-
 	touch ./nextcloud_permissions.sh
 	cat <<EOF > ./nextcloud_permissions.sh
 #!/bin/bash
@@ -1783,7 +2071,7 @@ then
 	echo ""
 	printf "\e[41mOne or more variables are undefined. Aborting...\e[0m\n"
 	echo ""
-	sleep 1
+	sleeping
 	exit 0
 else
 mkdir -p $ncpath/data
@@ -1815,17 +2103,17 @@ if [ -f ${ncpath}/data/.htaccess ]
 fi
 fi
 EOF
-	chmod +x nextcloud_permissions.sh
-	./nextcloud_permissions.sh
+
+chmod +x nextcloud_permissions.sh
+./nextcloud_permissions.sh
 
 if [ "$perm" = "plesk" ]; then
 	chown ${htuser}:psaserv $ncpath
-fi	
-
+fi
 	printf $green"Setting permissions completed...\n"$reset
 	echo ""
 	rm -f ./nextcloud_permissions.sh
-	sleep 2
+	sleeping2
 fi
 
 # Install Nextcloud via autoconfig.php
@@ -1841,7 +2129,7 @@ curl $url
 echo ""
 printf $green"INDEXING COMPLETE\n"$reset
 echo ""
-sleep 1
+sleeping
 printf $green"Finishing setup...\n"$reset
 
 #################
@@ -1912,12 +2200,12 @@ while true; do progress; done &
 	# Check for custom skeleton directory
 	if [[ "$skeleton" = "none" ]]; then echo "";
 	else
-	sudo -u ${htuser} php $ncpath/occ config:system:set skeletondirectory --value "$skeleton"
+		sudo -u ${htuser} php $ncpath/occ config:system:set skeletondirectory --value "$skeleton"
 	fi
 
 	# Check for enable avatars
 	if [[ "$enable_avatars" = "true" ]]; then
-	sudo -u ${htuser} php $ncpath/occ config:system:set enable_avatars --value 'true'
+		sudo -u ${htuser} php $ncpath/occ config:system:set enable_avatars --value 'true'
 	fi
 
 	if [[ -n "$folder" ]]; then
@@ -1935,10 +2223,10 @@ while true; do progress; done &
 	# remove config.sample.php
 	rm -f $ncpath/config/config.sample.php
 echo ""
-sleep 2
+sleeping2
 	} &> /dev/null
 
-	kill $!; trap 'kill $!' SIGTERM
+kill $!; trap 'kill $!' SIGTERM
 
 # disable 'no case match'
 shopt -u nocasematch
@@ -1946,15 +2234,15 @@ shopt -u nocasematch
 echo ""
 echo ""
 printf $ugreen"Finished!\n"$reset
-sleep 2
+sleeping2
 #################
 ##  ENDSCREEN  ##
 #################
 
 # Check for pretty URLs
 if [[ "$rewritebase" = "true" ]]; then
-len=${#url}-10
-url="${url:0:$len}"
+	len=${#url}-10
+	url="${url:0:$len}"
 fi
 
 touch /root/${ncname}_passwords.txt
@@ -1998,7 +2286,7 @@ printf $green"Navigate to $url and enjoy Nextcloud!\n"$reset
 		echo ""
 		echo "To disable maintenance mode type:"
 		printf $green"sudo -u ${htuser} php $ncpath/occ maintenance:mode --off"$reset
-		sleep 2
+		sleeping2
 	fi
 	# Check for singleuser mode
 	if [[ "$singleuser" = "true" ]]; then
@@ -2007,7 +2295,7 @@ printf $green"Navigate to $url and enjoy Nextcloud!\n"$reset
 		echo ""
 		echo "To disable singleuser mode type:"
 		printf $green"sudo -u ${htuser} php $ncpath/occ singleuser:mode --off"$reset
-		sleep 2
+		sleeping2
 	fi
 rm -f nextcloud-$ncversion.tar.bz2
 echo ""
@@ -2018,11 +2306,22 @@ stty echo
 ###############
 
 # Restart server if desired
-read -t 1 -n 100 discard
-installed=yes
-if [[ "$installed" == "yes" ]] ; then
-    while true; do
-	stty echo
+if [[ "$isconfig" = "true" ]]; then
+	if [[ "$rebootsrv" == "true" ]] ; then
+		shutdown -r now
+	else
+		stty echo
+		end=$(date +%s)
+		tottime=$(expr $end - $begin)
+		echo "Script completed successfully in $tottime seconds"
+		exit 0
+	fi
+else
+	read -t 1 -n 100 discard
+	installed=yes
+	if [[ "$installed" == "yes" ]] ; then
+		while true; do
+		stty echo
 		echo -en "Do you want to restart your server now (y/n)? ";rsn=$(readOne)
 		echo ""
         case $rsn in
@@ -2032,7 +2331,8 @@ if [[ "$installed" == "yes" ]] ; then
             [Nn]* )
 			stty echo
 			exit;
-        esac
-    done
-    shutdown -r now
+		esac
+		done
+		shutdown -r now
+	fi
 fi

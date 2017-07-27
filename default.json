@@ -1,0 +1,67 @@
+{
+  "general": {
+    "sql": {
+      "dbtype": "mysql",
+      "dbhost": "localhost",
+      "dbruser": "root",
+      "database_root": "supersecretpass"
+    },
+    "html": {
+      "url1": "http://example.com",
+      "html": "/var/www/html",
+      "folder": "nextcloud1",
+      "ncname": "my_nextcloud"
+    },
+    "mail": {
+      "email": "mail@example.com",
+      "smtpauth": "LOGIN",
+      "smtphost": "srv.example.com",
+      "smtpport": 587,
+      "smtpname": "admin@example.com",
+      "smtpsec": "tls",
+      "smtppwd": "password1234!",
+      "smtpauthreq": 1,
+      "smtpdomain": "domain.example.com"
+    },
+    "other": {
+      "depend": "false",
+      "rebootsrv": "false",
+      "overwrite": "true",
+      "adminuser": "ncadmin",
+      "smtp": "n",
+      "appsinstall": "n",
+      "version": ""
+    },
+    "perm": {
+      "rootuser": "root",
+      "htuser": "apache",
+      "htgroup": "apache"
+    }
+  },
+  "config": {
+    "custom": {
+      "displayname": "true",
+      "rlchannel": "stable",
+      "memcache": "none",
+      "maintenance": "false",
+      "singleuser": "false",
+      "skeleton": "none",
+      "default_language": "de",
+      "enable_avatars": "true",
+      "rewritebase": "false"
+    }
+  },
+   "apps": {
+    "integrated": {
+      "calendarinstall": "false",
+      "contactsinstall": "false",
+      "mailinstall": "false",
+      "notesinstall": "false",
+      "tasksinstall": "false",
+      "galleryinstall": "false"
+    },
+    "3rdparty": {
+      "impinstall": "false"
+    }
+  }
+}
