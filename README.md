@@ -23,7 +23,9 @@ Now let the script do it's work.
 That's it! Once it's done, visit your website and enjoy Nextcloud!
 
 # Usage
-Download or clone this repository.
+At first setup a LAMP Server and all PHP-Extensions required by Nextcloud!
+
+Afterwards download or clone this repository.
 
 After that, set +x to the script and run it:
 ```
