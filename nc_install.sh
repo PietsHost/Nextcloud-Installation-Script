@@ -236,7 +236,7 @@ header=' _____ _      _         _    _           _
 |  __ (_)    | |       | |  | |         | |
 | |__) |  ___| |_ ___  | |__| | ___  ___| |_
 |  ___/ |/ _ \ __/ __| |  __  |/ _ \/ __| __|	+-+-+-+-+
-| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.7 |
+| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.8 |
 |_|   |_|\___|\__|___/ |_|  |_|\___/|___/\__|	+-+-+-+-+'
 
 # Set color for Status
@@ -1304,6 +1304,33 @@ else
 	sleeping2
 fi
 stty echo
+
+######### Warning Apache & MySQL
+echo ""
+{
+	type mysql >/dev/null 2>&1
+} &> /dev/null
+if [ $? -eq 0 ]; then
+	echo ""
+else
+	printf $redbg"MySQL is not installed. Aborting...\n"$reset
+	sleeping2
+	abort
+fi
+
+{
+        ps -A | grep 'apache\|httpd'
+} &> /dev/null
+if [ $? -eq 0 ]; then
+	echo ""
+else
+	printf $redbg"Apache is not installed/not running. Aborting..."$reset
+	echo ""
+	sleeping2
+	abort
+fi
+
+#########
 
 ###################################
 ######   Setup Page 2 Start   #####
