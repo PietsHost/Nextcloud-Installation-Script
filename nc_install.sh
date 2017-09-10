@@ -349,6 +349,13 @@ else
 	sleep 0.2
 fi
 }
+function sleeping3 {
+if [[ "$isconfig" = "true" ]]; then
+	sleep 2
+else
+	sleep 1.2
+fi
+}
 function abort {
 	echo ""
 	stty echo
@@ -1301,7 +1308,7 @@ else
 	echo ""
 	printf $green"No Nextcloud installation found! Installing continues...\n"$reset
 	echo ""
-	sleeping2
+	sleeping3
 fi
 stty echo
 
@@ -1311,22 +1318,24 @@ echo ""
 	type mysql >/dev/null 2>&1
 } &> /dev/null
 if [ $? -eq 0 ]; then
-	echo ""
+	printf $green"MySQL installation found! Installing continues...\n"$reset
+	sleeping3
 else
 	printf $redbg"MySQL is not installed. Aborting...\n"$reset
-	sleeping2
+	sleeping3
 	abort
 fi
 
 {
-        ps -A | grep 'apache\|httpd'
+        ps -A | grep 'apache\|httpd\|nginx'
 } &> /dev/null
 if [ $? -eq 0 ]; then
-	echo ""
+	printf $green"Apache/nginx installation found! Installing continues...\n"$reset
+	sleeping3
 else
-	printf $redbg"Apache is not installed/not running. Aborting..."$reset
+	printf $redbg"Apache/nginx is not installed/not running. Aborting..."$reset
 	echo ""
-	sleeping2
+	sleeping3
 	abort
 fi
 
