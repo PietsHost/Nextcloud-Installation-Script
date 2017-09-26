@@ -23,7 +23,7 @@ Now let the script do it's work.
 That's it! Once it's done, visit your website and enjoy Nextcloud!
 
 # Usage
-Check out the Wiki: https://github.com/PietsHost/Nextcloud-Installation-Script/wiki
+Check out the Wiki: https://github.com/PietsHost/Nextcloud-Installation-Script/wiki<br />
 At first setup a LAMP Server and all PHP-Extensions required by Nextcloud!
 
 Afterwards download or clone this repository.
