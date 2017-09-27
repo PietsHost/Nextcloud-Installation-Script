@@ -32,7 +32,7 @@
       "appsinstall": "n",
       "version": "",
       "cron": "true",
-	  "icon"; ""
+	  "icon": ""
     },
     "perm": {
       "rootuser": "root",
