@@ -30,7 +30,9 @@
       "adminuser": "ncadmin",
       "smtp": "n",
       "appsinstall": "n",
-      "version": ""
+      "version": "",
+      "cron": "true",
+	  "icon"; ""
     },
     "perm": {
       "rootuser": "root",

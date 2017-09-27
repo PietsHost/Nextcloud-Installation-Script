@@ -52,6 +52,8 @@ chmod +x ./nc_install.sh
 	-s --smtp	setup SMTP during script run (Type -s "y" or -s "n")
 	-a --apps setup additionals apps during run (Type -a "y" or -a "n")
 	-c --config	path to JSON config file
+	--cron  enable automatic cronjob (Type --cron "true")
+	-i --icon specify path of you own favicon.ico file
 
 If you want to install v9.0.53 for example, use:<br />
 `./nc_install.sh -v 9.0.53` or `./nc_install.sh --version 9.0.53`

@@ -48,6 +48,8 @@ depend="true"
 overwrite="true"
 isconfig="false"
 config_to_read="default.json"
+cron="false"
+icon=""
 
 ################################
 ######   DEFAULT VAR END   #####
@@ -87,6 +89,8 @@ cat << EOF
  -s --smtp	setup SMTP during script run (Type -s "y" or -s "n")
  -a --apps 	setup additionals apps during run (Type -a "y" or -a "n")
  -c --config	path to JSON config file
+ --cron  enable automatic cronjob (Type --cron "true")
+ -i --icon specify path of you own favicon.ico file
 
 EOF
 }
@@ -153,6 +157,17 @@ while :; do
                 exit 1
             fi
             ;;
+		-i|--icon)
+			if [ -n "$2" ]; then
+				icon="$2"
+				shift
+			else
+                printf $redbg'ERROR: "--icon" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+            ;;
 		-c|--config)
 			if [ -n "$2" ]; then
 				if [ -f "$2" ]; then
@@ -183,6 +198,17 @@ while :; do
 				shift
 			else
                 printf $redbg'ERROR: "--directory" requires a non-empty option argument.' >&2
+				printf $reset"\n"
+				stty echo
+                exit 1
+            fi
+            ;;
+		--cron)
+			if [ -n "$2" ]; then
+				cron="$2"
+				shift
+			else
+                printf $redbg'ERROR: "--cron" requires a non-empty option argument.' >&2
 				printf $reset"\n"
 				stty echo
                 exit 1
@@ -236,7 +262,7 @@ header=' _____ _      _         _    _           _
 |  __ (_)    | |       | |  | |         | |
 | |__) |  ___| |_ ___  | |__| | ___  ___| |_
 |  ___/ |/ _ \ __/ __| |  __  |/ _ \/ __| __|	+-+-+-+-+
-| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.8 |
+| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.9 |
 |_|   |_|\___|\__|___/ |_|  |_|\___/|___/\__|	+-+-+-+-+'
 
 # Set color for Status
@@ -279,6 +305,8 @@ adminuser=$(json -f "$config_to_read" general.other.adminuser)
 smtp=$(json -f "$config_to_read" general.other.smtp)
 appsinstall=$(json -f "$config_to_read" general.other.appsinstall)
 version=$(json -f "$config_to_read" general.other.version)
+cron=$(json -f "$config_to_read" general.other.cron)
+icon=$(json -f "$config_to_read" general.other.icon)
 
 # General - E-mail
 email=$(json -f "$config_to_read" general.mail.email)
@@ -318,7 +346,7 @@ echo ""
 echo ""
 # Read JSON config
 if [[ "$isconfig" = "true" ]]; then
-	begin=$(date +%s) 
+	begin=$(date +%s)
 	jsonconfig
 else
 	# Apps
@@ -404,7 +432,7 @@ if [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ||
 	echo ""
 	sleeping
 else
-	printf $red"Unfortunately, this OS is not supported by Piet's Host Install-script for Nextcloud.\n"$reset
+	printf $red"Unfortunately, this OS is not supported by Piet's Host Installation-Script for Nextcloud.\n"$reset
 	sleeping2
 	abort
 fi
@@ -414,6 +442,7 @@ if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.
 	if [[ "$overwrite" = "true" ]]; then
 		#Check for Plesk installation
 		echo "checking additional control panels..."
+		echo ""
 		if dpkg -l | grep -q psa; then
 			plesk
 		fi
@@ -434,6 +463,7 @@ elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
 	if [[ "$overwrite" = "true" ]]; then
 		#Check for Plesk installation
 		echo "checking additional control panels..."
+		echo ""
 		if dpkg -l | grep -qw psa; then
 			plesk
 		fi
@@ -454,6 +484,7 @@ elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
 	if [[ "$overwrite" = "true" ]]; then
 		#Check for Plesk installation
 		echo "checking additional control panels..."
+		echo ""
 		if rpm -qa | grep -q psa; then
 			plesk
 		fi
@@ -474,6 +505,7 @@ elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
 	if [[ "$overwrite" = "true" ]]; then
 		#Check for Plesk installation
 		echo "checking additional control panels..."
+		echo ""
 		if rpm -qa | grep -qw psa; then
 			plesk
 		fi
@@ -610,6 +642,7 @@ fi
 
 # Check Status on startup
 folderstat="$check_ok"
+iconstat="$check_ok"
 function check(){
 [  -z "$url1" ] && domainstat="$check_miss" || domainstat="$check_ok"
 [  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
@@ -640,6 +673,8 @@ function check(){
 [  -z "$default_language" ] && langstat="$check_miss" || langstat="$check_ok"
 [  -z "$enable_avatars" ] && enavastat="$check_miss" || enavastat="$check_ok"
 [  -z "$rewritebase" ] && rewritestat="$check_miss" || rewritestat="$check_ok"
+[  -z "$cron" ] && cronstat="$check_miss" || cronstat="$check_ok"
+[  -z "$icon" ] && iconstat="$check_miss" || iconstat="$check_ok"
 }
 
 function checkapps(){
@@ -1313,12 +1348,12 @@ fi
 stty echo
 
 ######### Warning Apache & MySQL
-echo ""
 {
 	type mysql >/dev/null 2>&1
 } &> /dev/null
 if [ $? -eq 0 ]; then
 	printf $green"MySQL installation found! Installing continues...\n"$reset
+	echo ""
 	sleeping3
 else
 	printf $redbg"MySQL is not installed. Aborting...\n"$reset
@@ -1331,6 +1366,7 @@ fi
 } &> /dev/null
 if [ $? -eq 0 ]; then
 	printf $green"Apache/nginx installation found! Installing continues...\n"$reset
+	echo ""
 	sleeping3
 else
 	printf $redbg"Apache/nginx is not installed/not running. Aborting..."$reset
@@ -1366,10 +1402,12 @@ if [[ "$isconfig" = "true" ]]; then
   printf "  5   |  $htusrstat   |        WWW User: | "$htuser"\n"
   printf "  6   |  $htgrpstat   |       WWW Group: | "$htgroup"\n"
   printf "  7   |  $rootusrstat   |       root user: | "$rootuser"\n"
+  printf "  8   |  $cronstat   |         cronjob: | "$cron"\n"
+  printf "  9   |  $iconstat   |         favicon: | "$icon"\n"
   echo "------+------------+------------------+------------------------------------"
-  printf "Type [1-7] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+  printf "Type [1-9] to change value or ${cyan}[s]${reset} to save and go to next page\n"
   printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-7], [s] or [q]: ";key3=$(readOne)
+  echo -en "Enter [1-9], [s] or [q]: ";key3=$(readOne)
 
   if [ "$key3" = "1" ]; then
 	echo ""
@@ -1475,6 +1513,26 @@ if [[ "$isconfig" = "true" ]]; then
 		done
 	[  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
 	fi
+
+  elif [ "$key3" = "8" ]; then
+	if [ "$cron" = "true" ]; then
+		cron='false'
+		cronstat="$check_ok"
+		printf $red"Cronjob turned off\n"$reset
+		sleep 1
+	elif [ "$cron" = "false" ]; then
+		cron='true'
+		cronstat="$check_ok"
+		printf $green"Cronjob turned on\n"$reset
+		sleep 1
+	fi
+
+  elif [ "$key3" = "9" ]; then
+	echo ""
+	stty echo
+	echo -n "Enter favicon-location (e.g. /home/favicon.ico): "
+	read icon
+	iconstat="$check_ok"
 
   elif [ "$key3" = "s" ]; then
 	stty echo
@@ -2163,7 +2221,7 @@ else
 	url=$url1/$folder/index.php		# trigger for autoconfig.php
 fi
 {
-curl $url
+curl -k $url
 } &> /dev/null
 echo ""
 printf $green"INDEXING COMPLETE\n"$reset
@@ -2257,6 +2315,20 @@ while true; do progress; done &
 	if [[ "$rewritebase" = "true" ]]; then
 		sudo -u ${htuser} php $ncpath/occ config:system:set htaccess.RewriteBase --value "$rewritevalue"
 		sudo -u ${htuser} php $ncpath/occ maintenance:update:htaccess
+	fi
+
+	# enable Cronjob
+	if [[ "$cron" = "true" ]];then
+		sudo -u ${htuser} php $ncpath/occ config:app:set core backgroundjobs_mode --value="cron"
+		crontab -u ${htuser} -l > cron
+		echo "*/15  *  *  *  * php $ncpath/cron.php" >> cron
+		crontab -u ${htuser} cron
+	fi
+
+	# move favicon
+	if [ -f $icon ]; then
+		cp $icon $ncpath/core/img/favicon.ico
+		chown ${rootuser}:${htgroup} $ncpath/core/img/favicon.ico
 	fi
 
 	# remove config.sample.php
