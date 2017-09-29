@@ -68,5 +68,5 @@ If you want to install v9.0.53 for example, use:<br />
 I'm sure it will work on every Linux System, even if I haven't tested it yet :)
 
 ## Requirements
-This script requires the following packages: `pv bzip2 rsync php-process bc`<br />
+This script requires the following packages: `pv bzip2 rsync php-process bc json`<br />
 The packages will be installed automatically when you run the script.
