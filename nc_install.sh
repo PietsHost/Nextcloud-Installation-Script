@@ -3,7 +3,7 @@
 ## Piet's Host ## - ©2017, https://piets-host.de
 #
 # Tested on:
-# CentOS 6.8 & 7.3,
+# CentOS 6.8 & 7.4,
 # Ubuntu 12.04, 14.04, 16.04,
 # Debian 7 & 8,
 # Fedora 23, 24 & 25,
@@ -13,47 +13,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 # disable user input
 stty -echo
 clear
-##################################
-######   DEFAULT VAR START   #####
-##################################
 
-url1="http://example.com"
-ncname="my_nextcloud"
-dbhost="localhost"
-dbtype="mysql"
-rootuser='root'
-html='/var/www/html' # full installation path
-folder='nextcloud1'
-
-# E-mail
-email="mail@example.com"
-smtpauth="LOGIN"
-smtpport="587"
-smtpname="admin@example.com"
-smtpsec="tls"
-smtppwd="password1234!"
-smtpauthreq=1
-
-# Others
-displayname='true'
-rlchannel='stable'
-memcache='APCu'
-maintenance='false'
-singleuser='false'
-skeleton='none'
-default_language='de'
-enable_avatars='true'
-rewritebase='false'
-depend="true"
-overwrite="true"
-isconfig="false"
-config_to_read="default.json"
-cron="false"
-icon=""
-
-################################
-######   DEFAULT VAR END   #####
-################################
+# Import sources
+source functions.sh
+source variables.sh
+source apps.sh
 
 # Set colors for printf output
 red='\e[31m'
@@ -65,35 +29,6 @@ lightred='\e[91m'
 blue='\e[34m'
 cyan='\e[36m'
 ugreen='\e[4;32m'
-
-show_help() {
-cat << EOF
-
- Usage: ${0##*/} [-v VERSION] [-n NAME]...
- You can specify some variables before script run.
- E.g. you can set the Nextcloud version or the
- MySQL root password. If no option is set, the
- script will use default variables and you
- can set them during script run (you will
- be asked) :-)
-
- -h --help	display this help and exit
- -v --version	specify Nextcloud Version (e.g. 10.0.0)
- -p --password	sets the MySQL root password. Type -p "P@s§"
- -r --root	sets the MySQL root user
- -m --mysqlhost	sets the MySQL Host
- -n --name	sets the Nextcloud name, used for Database
- -u --url	sets the URL for Nextcloud installation
- -d --directory	sets the full installation path
- -f --folder 	sets the desired folder (example.com/folder). May be empty
- -s --smtp	setup SMTP during script run (Type -s "y" or -s "n")
- -a --apps 	setup additionals apps during run (Type -a "y" or -a "n")
- -c --config	path to JSON config file
- --cron  enable automatic cronjob (Type --cron "true")
- -i --icon specify path of you own favicon.ico file
-
-EOF
-}
 
 while :; do
     case $1 in
@@ -262,7 +197,7 @@ header=' _____ _      _         _    _           _
 |  __ (_)    | |       | |  | |         | |
 | |__) |  ___| |_ ___  | |__| | ___  ___| |_
 |  ___/ |/ _ \ __/ __| |  __  |/ _ \/ __| __|	+-+-+-+-+
-| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 1.9 |
+| |   | |  __/ |_\__ \ | |  | | (_) \__ \ |_ 	| v 2.0 |
 |_|   |_|\___|\__|___/ |_|  |_|\___/|___/\__|	+-+-+-+-+'
 
 # Set color for Status
@@ -275,74 +210,7 @@ ncrepo="https://download.nextcloud.com/server/releases"
 # Must be root
 [[ `id -u` -eq 0 ]] || { echo "Root privileges required, type: sudo -i"; stty echo; exit 1; }
 
-# Read JSON config file
-function jsonconfig {
-echo "Reading JSON config $config_to_read ..."
-chmod 0644 $config_to_read
-sleep 0.5
-# General - SQL
-dbhost=$(json -f "$config_to_read" general.sql.dbhost)
-dbruser=$(json -f "$config_to_read" general.sql.dbruser)
-dbtype=$(json -f "$config_to_read" general.sql.dbtype)
-database_root=$(json -f "$config_to_read" general.sql.database_root)
-
-# General - HTML
-url1=$(json -f "$config_to_read" general.html.url1)
-ncname=$(json -f "$config_to_read" general.html.ncname)
-html=$(json -f "$config_to_read" general.html.html)
-folder=$(json -f "$config_to_read" general.html.folder)
-
-# General - Perm
-rootuser=$(json -f "$config_to_read" general.perm.rootuser)
-htuser=$(json -f "$config_to_read" general.perm.htuser)
-htgroup=$(json -f "$config_to_read" general.perm.htgroup)
-
-# General - Other
-depend=$(json -f "$config_to_read" general.other.depend)
-rebootsrv=$(json -f "$config_to_read" general.other.rebootsrv)
-overwrite=$(json -f "$config_to_read" general.other.overwrite)
-adminuser=$(json -f "$config_to_read" general.other.adminuser)
-smtp=$(json -f "$config_to_read" general.other.smtp)
-appsinstall=$(json -f "$config_to_read" general.other.appsinstall)
-version=$(json -f "$config_to_read" general.other.version)
-cron=$(json -f "$config_to_read" general.other.cron)
-icon=$(json -f "$config_to_read" general.other.icon)
-
-# General - E-mail
-email=$(json -f "$config_to_read" general.mail.email)
-smtpauth=$(json -f "$config_to_read" general.mail.smtpauth)
-smtpport=$(json -f "$config_to_read" general.mail.smtpport)
-smtpname=$(json -f "$config_to_read" general.mail.smtpname)
-smtpsec=$(json -f "$config_to_read" general.mail.smtpsec)
-smtppwd=$(json -f "$config_to_read" general.mail.smtppwd)
-smtpauthreq=$(json -f "$config_to_read" general.mail.smtpauthreq)
-smtphost=$(json -f "$config_to_read" general.mail.smtphost)
-smtpdomain=$(json -f "$config_to_read" general.mail.smtpdomain)
-
-# Config - Custom
-displayname=$(json -f "$config_to_read" config.custom.displayname)
-rlchannel=$(json -f "$config_to_read" config.custom.rlchannel)
-memcache=$(json -f "$config_to_read" config.custom.memcache)
-maintenance=$(json -f "$config_to_read" config.custom.maintenance)
-singleuser=$(json -f "$config_to_read" config.custom.singleuser)
-skeleton=$(json -f "$config_to_read" config.custom.skeleton)
-default_language=$(json -f "$config_to_read" config.custom.default_language)
-enable_avatars=$(json -f "$config_to_read" config.custom.enable_avatars)
-rewritebase=$(json -f "$config_to_read" config.custom.rewritebase)
-
-# Config - Apps
-contactsinstall=$(json -f "$config_to_read" apps.integrated.contactsinstall)
-calendarinstall=$(json -f "$config_to_read" apps.integrated.calendarinstall)
-mailinstall=$(json -f "$config_to_read" apps.integrated.mailinstall)
-notesinstall=$(json -f "$config_to_read" apps.integrated.notesinstall)
-tasksinstall=$(json -f "$config_to_read" apps.integrated.tasksinstall)
-galleryinstall=$(json -f "$config_to_read" apps.integrated.galleryinstall)
-
-impinstall=$(json -f "$config_to_read" apps.3rdparty.impinstall)
-echo ""
-}
-printf $green"$header"$reset
-echo ""
+printhead
 echo ""
 # Read JSON config
 if [[ "$isconfig" = "true" ]]; then
@@ -363,42 +231,43 @@ fi
 ######   BEFORE SETUP START   #####
 ###################################
 
-function sleeping {
-if [[ "$isconfig" = "true" ]]; then
-	sleep 1
-else
-	sleep 0.2
-fi
-}
-function sleeping2 {
-if [[ "$isconfig" = "true" ]]; then
-	sleep 2
-else
-	sleep 0.2
-fi
-}
-function sleeping3 {
-if [[ "$isconfig" = "true" ]]; then
-	sleep 2
-else
-	sleep 1.2
-fi
-}
-function abort {
-	echo ""
-	stty echo
-	exit 0
-}
-function plesk {
-dbruser='admin'
-database_root="`cat /etc/psa/.psa.shadow`"
-htgroup='psacln'
-perm='plesk'
-}
-
 printf "Checking minimal system requirements...\n"
+sleep 4 & spinner
 echo ""
-sleeping
+
+# Check CPUs
+cpus="$(nproc)"
+if [[ "${cpus}" -lt 2 ]]; then
+	echo ""
+	printf $red"Attention: 2 CPUs recommended to install Nextcloud!\n"$reset
+	printf $red"Current CPU: ("$((cpus))")\n"$reset
+	anykey
+else
+	printf $green"CPU for Nextcloud OK! ("$((cpus))")\n"$reset
+	echo ""
+fi
+
+# Check RAM
+ram="$(awk '/MemTotal/{print $2}' /proc/meminfo)"
+if [ "$ram" -lt "$((1*1002400))" ]; then
+	echo ""
+	printf $red"Attention: 1 GB RAM recommended to install Nextcloud!\n"$reset
+	printf $red"Current RAM is: ("$((ram/1002400))" GB)\n"$reset
+	anykey
+else
+    printf $green"Enough RAM for Nextcloud found! ("$((ram/1002400))" GB)\n"$reset
+fi
+echo ""
+
+# Check internet connection
+wget -q --tries=10 --timeout=10 https://www.google.com -O /tmp/test.pgx &> /dev/null
+if [ ! -s /tmp/test.pgx ]
+then
+	printf $red"Sorry, no Internet Connection available. Try again later!\n"$reset
+	sleep 2
+	echo ""
+	exit 1
+fi
 
 # Ensure the OS is compatible with the installer
 if [ -f /etc/centos-release ]; then
@@ -452,10 +321,7 @@ if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.
 		htuser='www-data'
 	else
 		if [[ "$isconfig" = "true" ]]; then
-			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
-			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
-			htuser=$(json -f "$config_to_read" general.perm.htuser)
-			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+			readusers
 		fi
 	fi
 
@@ -473,10 +339,7 @@ elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
 		htuser='www-data'
 	else
 		if [[ "$isconfig" = "true" ]]; then
-			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
-			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
-			htuser=$(json -f "$config_to_read" general.perm.htuser)
-			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+			readusers
 		fi
 	fi
 
@@ -494,10 +357,7 @@ elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
 		htuser='apache'
 	else
 		if [[ "$isconfig" = "true" ]]; then
-			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
-			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
-			htuser=$(json -f "$config_to_read" general.perm.htuser)
-			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+			readusers
 		fi
 	fi
 
@@ -515,10 +375,7 @@ elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
 		htuser='apache'
 	else
 		if [[ "$isconfig" = "true" ]]; then
-			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
-			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
-			htuser=$(json -f "$config_to_read" general.perm.htuser)
-			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+			readusers
 		fi
 	fi
 fi
@@ -527,7 +384,6 @@ if [[ "$depend" = "false" ]]; then
 		printf $yellow"Skipping dependencies check...\n"$reset
 		sleeping
 else
-	echo ""
 	printf $yellow"Installing dependencies...(may take some time)\n"$reset
 {
 if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
@@ -550,10 +406,7 @@ if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.
 		htuser='www-data'
 	else
 		if [[ "$isconfig" = "true" ]]; then
-			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
-			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
-			htuser=$(json -f "$config_to_read" general.perm.htuser)
-			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+			readusers
 		fi
 	fi
 
@@ -574,10 +427,7 @@ elif [[ "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ]]; then
 		htuser='www-data'
 	else
 		if [[ "$isconfig" = "true" ]]; then
-			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
-			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
-			htuser=$(json -f "$config_to_read" general.perm.htuser)
-			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+			readusers
 		fi
 	fi
 
@@ -596,10 +446,7 @@ elif [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ]]; then
 		htuser='apache'
 	else
 		if [[ "$isconfig" = "true" ]]; then
-			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
-			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
-			htuser=$(json -f "$config_to_read" general.perm.htuser)
-			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+			readusers
 		fi
 	fi
 
@@ -621,10 +468,7 @@ elif [[ "$os" = "fedora" && ("$ver" = "23" || "$ver" = "25") ]]; then
 		htuser='apache'
 	else
 		if [[ "$isconfig" = "true" ]]; then
-			rootuser=$(json -f "$config_to_read" general.perm.rootuser)
-			dbruser=$(json -f "$config_to_read" general.sql.dbruser)
-			htuser=$(json -f "$config_to_read" general.perm.htuser)
-			htgroup=$(json -f "$config_to_read" general.perm.htgroup)
+			readusers
 		fi
 	fi
 fi
@@ -643,509 +487,8 @@ fi
 # Check Status on startup
 folderstat="$check_ok"
 iconstat="$check_ok"
-function check(){
-[  -z "$url1" ] && domainstat="$check_miss" || domainstat="$check_ok"
-[  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
-[  -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
-[  -z "$dbtype" ] && dbtypestat="$check_miss" || dbtypestat="$check_ok"
-[  -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
-[  -z "$email" ] && emailstat="$check_miss" || emailstat="$check_ok"
-[  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
-[  -z "$smtpauthreq" ] && smauthreqstat="$check_miss" || smauthreqstat="$check_ok"
-[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
-[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
-[  -z "$smtpname" ] && smnamestat="$check_miss" || smnamestat="$check_ok"
-[  -z "$smtppwd" ] && smpwdstat="$check_miss" || smpwdstat="$check_ok"
-[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
-[  -z "$htuser" ] && htusrstat="$check_miss" || htusrstat="$check_ok"
-[  -z "$htgroup" ] && htgrpstat="$check_miss" || htgrpstat="$check_ok"
-[  -z "$rootuser" ] && rootusrstat="$check_miss" || rootusrstat="$check_ok"
-[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
-[  -z "$dbruser" ] && dbusrstat="$check_miss" || dbusrstat="$check_ok"
-[  -z "$database_root" ] && dbrootstat="$check_miss" || dbrootstat="$check_ok"
-[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
-[  -z "$displayname" ] && dpnamestat="$check_miss" || dpnamestat="$check_ok"
-[  -z "$rlchannel" ] && rlchanstat="$check_miss" || rlchanstat="$check_ok"
-[  -z "$memcache" ] && memstat="$check_miss" || memstat="$check_ok"
-[  -z "$maintenance" ] && maintstat="$check_miss" || maintstat="$check_ok"
-[  -z "$singleuser" ] && singlestat="$check_miss" || singlestat="$check_ok"
-[  -z "$skeleton" ] && skeletonstat="$check_miss" || skeletonstat="$check_ok"
-[  -z "$default_language" ] && langstat="$check_miss" || langstat="$check_ok"
-[  -z "$enable_avatars" ] && enavastat="$check_miss" || enavastat="$check_ok"
-[  -z "$rewritebase" ] && rewritestat="$check_miss" || rewritestat="$check_ok"
-[  -z "$cron" ] && cronstat="$check_miss" || cronstat="$check_ok"
-[  -z "$icon" ] && iconstat="$check_miss" || iconstat="$check_ok"
-}
-
-function checkapps(){
-[  -z "$contactsinstall" ] && contactsstat="$check_miss" || contactsstat="$check_ok"
-[  -z "$calendarinstall" ] && calendarstat="$check_miss" || calendarstat="$check_ok"
-[  -z "$mailinstall" ] && mailstat="$check_miss" || mailstat="$check_ok"
-[  -z "$notesinstall" ] && notesstat="$check_miss" || notesstat="$check_ok"
-[  -z "$tasksinstall" ] && tasksstat="$check_miss" || tasksstat="$check_ok"
-[  -z "$galleryinstall" ] && gallerystat="$check_miss" || gallerystat="$check_ok"
-[  -z "$impinstall" ] && impstat="$check_miss" || impstat="$check_ok"
-}
-
 check
 
-function printhead {
-clear
-printf $green"$header"$reset
-echo ""
-}
-
-# autoinput on keypress
-readOne () {
-	stty echo
-	local oldstty
-	oldstty=$(stty -g)
-	stty -icanon -echo min 1 time 0
-	dd bs=1 count=1 2>/dev/null
-	stty "$oldstty"
-	stty -echo
-}
-
-function contactsinstall {
-		# Download and install Contacts
-		if [ -d $ncpath/apps/contacts ]
-		then
-			sleeping
-		else
-			wget -q $contacs_repo/v$contacs/$contacs_file -P $ncpath/apps
-			tar -zxf $ncpath/apps/$contacs_file -C $ncpath/apps
-			cd $ncpath/apps
-			rm $contacs_file
-		fi
-
-		# Enable Contacts
-		if [ -d $ncpath/apps/contacts ]
-		then
-			sudo -u ${htuser} php $ncpath/occ app:enable contacts
-		fi
-}
-
-function calendarinstall {
-		# Download and install Calendar
-		if [ -d $ncpath/apps/calendar ]
-		then
-			sleeping
-		else
-			wget -q $calendar_repo/v$calendar/$calendar_file -P $ncpath/apps
-			tar -zxf $ncpath/apps/$calendar_file -C $ncpath/apps
-			cd $ncpath/apps
-			rm $calendar_file
-		fi
-
-		# Enable Calendar
-		if [ -d $ncpath/apps/calendar ]
-		then
-			sudo -u ${htuser} php $ncpath/occ app:enable calendar
-		fi
-}
-
-function mailinstall {
-		# Download and install Mail
-		if [ -d $ncpath/apps/mail ]
-		then
-			sleeping
-		else
-			wget -q $mail_repo/v$mail/$mail_file -P $ncpath/apps
-			tar -zxf $ncpath/apps/$mail_file -C $ncpath/apps
-			cd $ncpath/apps
-			rm $mail_file
-		fi
-
-		# Enable Mail
-		if [ -d $ncpath/apps/mail ]
-		then
-			sudo -u ${htuser} php $ncpath/occ app:enable mail
-		fi
-}
-
-function notesinstall {
-		# Download and install Notes
-		if [ -d $ncpath/apps/notes ]
-		then
-			sleeping
-		else
-			wget -q $notes_repo/v$notes/$notes_file -P $ncpath/apps
-			tar -zxf $ncpath/apps/$notes_file -C $ncpath/apps
-			cd $ncpath/apps
-			rm $notes_file
-		fi
-
-		# Enable Notes
-		if [ -d $ncpath/apps/notes ]
-		then
-			sudo -u ${htuser} php $ncpath/occ app:enable notes
-		fi
-}
-
-function tasksinstall {
-		# Download and install Tasks
-		if [ -d $ncpath/apps/tasks ]
-		then
-			sleeping
-		else
-			wget -q $tasks_repo/v$tasks/$tasks_file -P $ncpath/apps
-			tar -zxf $ncpath/apps/$tasks_file -C $ncpath/apps
-			cd $ncpath/apps
-			rm $tasks_file
-		fi
-
-		# Enable Tasks
-		if [ -d $ncpath/apps/tasks ]
-		then
-			sudo -u ${htuser} php $ncpath/occ app:enable tasks
-		fi
-}
-
-function galleryinstall {
-		# Download and install Gallery
-		if [ -d $ncpath/apps/gallery ]
-		then
-			sleeping
-		else
-			wget -q $gallery_repo/v$gallery/$gallery_file -P $ncpath/apps
-			tar -zxf $ncpath/apps/$gallery_file -C $ncpath/apps
-			cd $ncpath/apps
-			rm $gallery_file
-		fi
-
-		# Enable Gallery
-		if [ -d $ncpath/apps/gallery ]
-		then
-			sudo -u ${htuser} php $ncpath/occ app:enable gallery
-		fi
-}
-
-function impersonateinstall {
-		# Download and install impersonate
-		if [ -d $ncpath/apps/impersonate ]
-		then
-			sleeping
-		else
-			wget -q $impersonate_repo/$impersonate_file -P $ncpath/apps
-			tar -zxf $ncpath/apps/$impersonate_file
-			mv $impersonate_folder $impersonate_new
-			mv $impersonate_new $ncpath/apps
-			cd $ncpath/apps
-			rm -f $impersonate_file
-		fi
-
-		# Enable impersonate
-		if [ -d $ncpath/apps/impersonate ]
-		then
-			# Set minimum-version to 10 since 12 isn't released yet
-			xmlstarlet edit -L -u "/info/dependencies/nextcloud[@min-version='12'] [@max-version='12']/@min-version" -v 10 $ncpath/apps/impersonate/appinfo/info.xml
-			sudo -u ${htuser} php $ncpath/occ app:enable impersonate
-fi
-		}
-
-function progress () {
-	s=0.75;
-	f=0.2;
-	echo -ne "\r\n";
-	while true; do
-	    sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [             ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [>            ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-->          ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [--->         ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [---->        ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [----->       ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------>      ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------->     ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-------->    ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [--------->   ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [---------->  ] working: ${s} secs." \
-	&& sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [-----------> ] working: ${s} secs.";
-	    sleep $f && s=`echo ${s} + ${f} | bc` && echo -ne "\r [------------>] working: ${s} secs.";
-    done;
-}
-
-function smtpsetup(){
-
-clear
-while true; do
-  printhead
-echo ""
-stty echo
-  echo "--------------------------------------------------------------------------"
-  echo "                    Setup SMTP"
-  echo "------+------------+-----------------+------------------------------------"
-  echo "  Nr. |   Status   |     description |    value"
-  echo "------+------------+-----------------+------------------------------------"
-  printf "  1   |  $smauthstat   |      Auth-Type: | "$smtpauth"\n"
-  printf "  2   |  $smhoststat   |      SMTP-Host: | "$smtphost"\n"
-  printf "  3   |  $smportstat   |           Port: | "$smtpport"\n"
-  printf "  4   |  $smnamestat   |    Sender Name: | "$smtpname"\n"
-  printf "  5   |  $smpwdstat   |  SMTP-Password: | "$smtppwd"\n"
-  printf "  6   |  $smsecstat   |    SMTP-Secure: | "$smtpsec"\n"
-  printf "  7   |  $smauthreqstat   | Auth required?: | "$smtpauthreq"\n"
-  printf "  8   |  $smtpdomainstat   |    SMTP Domain: | "$smtpdomain"\n"
-  echo "------+------------+-----------------+------------------------------------"
-  printf "Type [1-8] to change value or ${cyan}[s]${reset} to save and go to next page\n"
-  printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-8], [s] or [q]: ";key2=$(readOne)
-
-  if [ "$key2" = "1" ]; then
-	echo ""
-	stty echo
-	echo -n "Enter Auth-Type (LOGIN, PLAIN, etc): "
-	read smtpauth
-	[  -z "$smtpauth" ] && smauthstat="$check_miss" || smauthstat="$check_ok"
-
-  elif [ "$key2" = "2" ]; then
-	echo ""
-	stty echo
-	echo -n "Enter SMTP-Host (e.g. yourdomain.com): "
-	read smtphost
-	[  -z "$smtphost" ] && smhoststat="$check_miss" || smhoststat="$check_ok"
-
-  elif [ "$key2" = "3" ]; then
-	echo ""
-	stty echo
-	echo -n "Enter SMTP-Port (default :587): "
-	read smtpport
-
-	# Check for correct input
-	while ! [[ "$smtpport" =~ ^[0-9]+$ ]]; do
-		printf $redbg"Wrong input format. Only numbers are supported...: "$reset
-		read smtpport
-	done
-	[  -z "$smtpport" ] && smportstat="$check_miss" || smportstat="$check_ok"
-
-  elif [ "$key2" = "4" ]; then
-	echo ""
-	stty echo
-	echo -n "Enter SMTP-Sendername (e.g. admin, info, etc): "
-	read smtpname
-	[  -z "$smtpname" ] && smnamestat="$check_miss" || smnamestat="$check_ok"
-
-  elif [ "$key2" = "5" ]; then
-	echo ""
-	stty echo
-	echo -n "Enter SMTP-password: "
-	read smtppwd
-	[  -z "$smtppwd" ] && smpwdstat="$check_miss" || smpwdstat="$check_ok"
-
-  elif [ "$key2" = "6" ]; then
-	echo ""
-	stty echo
-	echo -n "Enter SMTP-Security (tls, ssl, none): "
-	read smtpsec
-
-	# Check for correct input
-	while ! [ "$smtpsec" = "tls" ] || [ "$smtpsec" = "ssl" ] || [ "$smtpsec" = "none" ]; do
-		printf $redbg"Wrong input format. Type ssl, tls or none...: "$reset
-		read smtpsec
-	done
-	[  -z "$smtpsec" ] && smsecstat="$check_miss" || smsecstat="$check_ok"
-
-  elif [ "$key2" = "7" ]; then
-	if [ "$smtpauthreq" = "0" ]; then
-		smtpauthreq='1'
-		smauthreqstat="$check_ok"
-		printf $green"SMTP-Authentification enabled\n"$reset
-		sleeping
-	elif [ "$smtpauthreq" = "1" ]; then
-		smtpauthreq='0'
-		smauthreqstat="$check_ok"
-		printf $red"SMTP-Authentification disabled\n"$reset
-		sleeping
-	fi
-
-  elif [ "$key2" = "8" ]; then
-	echo ""
-	stty echo
-	echo -n "Set SMTP sender Domain (e.g. yourdomain.com): "
-	read smtpdomain
-	[  -z "$smtpdomain" ] && smtpdomainstat="$check_miss" || smtpdomainstat="$check_ok"
-
-
-  elif [ "$key2" = "s" ]; then
-	stty echo
-      if [ -z "$smtpauth" ] || [ -z "$smtphost" ] || [ -z "$smtpport" ] || [ -z "$smtpname" ] || [ -z "$smtppwd" ] || [ -z "$smtpsec" ] || [ -z "$smtpauthreq" ] || [ -z "$smtpdomain" ]; then
-		printf $redbg"One or more variables are undefined. Aborting..."$reset
-        	sleep 3
-        	continue
-	else
-		echo ""
-        	echo "-----------------------------"
-	break
-	fi
-  elif [ "$key2" = "q" ]; then
-  abort
-  fi
-done
-}
-
-function installapps(){
-
-checkapps
-
-clear
-while true; do
-  printhead
-echo ""
-stty echo
-  echo "--------------------------------------------------------------------"
-  echo "                    Setup Apps"
-  echo "------+------------+----------------+-------------------------------"
-  echo "  Nr. |   Status   |            app |    value"
-  echo "------+------------+----------------+-------------------------------"
-  printf "  1   |  $contactsstat   |      contacts: |     "$contactsinstall"\n"
-  printf "  2   |  $calendarstat   |      calendar: |     "$calendarinstall"\n"
-  printf "  3   |  $mailstat   |          mail: |     "$mailinstall"\n"
-  printf "  4   |  $notesstat   |         notes: |     "$notesinstall"\n"
-  printf "  5   |  $tasksstat   |         tasks: |     "$tasksinstall"\n"
-  printf "  6   |  $gallerystat   |       gallery: |     "$galleryinstall"\n"
-  printf "  7   |  $impstat   |   impersonate: |     "$impinstall"\n"
-  echo "------+------------+----------------+-------------------------------"
-  printf "Type [1-7] to change value or ${cyan}[s]${reset} to save and go to next page\n"
-  printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-7], [s] or [q]: ";key5=$(readOne)
-
-if [ "$key5" = "1" ]; then
-	if [ "$contactsinstall" = "true" ]; then
-		contactsinstall='false'
-		contactsstat="$check_ok"
-		printf $red"contacts installation turned off\n"$reset
-		sleeping
-	elif [ "$contactsinstall" = "false" ]; then
-		contactsinstall='true'
-		contactsstat="$check_ok"
-		printf $green"contacs installation turned on\n"$reset
-		sleeping
-	fi
-
-  elif [ "$key5" = "2" ]; then
-	if [ "$calendarinstall" = "true" ]; then
-		calendarinstall='false'
-		calendarstat="$check_ok"
-		printf $red"calendar installation turned off\n"$reset
-		sleeping
-	elif [ "$calendarinstall" = "false" ]; then
-		calendarinstall='true'
-		calendarstat="$check_ok"
-		printf $green"calendar installation turned on\n"$reset
-		sleeping
-	fi
-
-  elif [ "$key5" = "3" ]; then
-	if [ "$mailinstall" = "true" ]; then
-		mailinstall='false'
-		mailstat="$check_ok"
-		printf $red"mail installation turned off\n"$reset
-		sleeping
-	elif [ "$mailinstall" = "false" ]; then
-		mailinstall='true'
-		mailstat="$check_ok"
-		printf $green"mail installation turned on\n"$reset
-		sleeping
-	fi
-
-  elif [ "$key5" = "4" ]; then
-	if [ "$notesinstall" = "true" ]; then
-		notesinstall='false'
-		notesstat="$check_ok"
-		printf $red"notes installation turned off\n"$reset
-		sleeping
-	elif [ "$notesinstall" = "false" ]; then
-		notesinstall='true'
-		notesstat="$check_ok"
-		printf $green"notes installation turned on\n"$reset
-		sleeping
-	fi
-
-  elif [ "$key5" = "5" ]; then
-	if [ "$tasksinstall" = "true" ]; then
-		tasksinstall='false'
-		tasksstat="$check_ok"
-		printf $red"tasks installation turned off\n"$reset
-		sleeping
-	elif [ "$tasksinstall" = "false" ]; then
-		tasksinstall='true'
-		tasksstat="$check_ok"
-		printf $green"tasks installation turned on\n"$reset
-		sleeping
-	fi
-
-  elif [ "$key5" = "6" ]; then
-	if [ "$galleryinstall" = "true" ]; then
-		galleryinstall='false'
-		gallerystat="$check_ok"
-		printf $red"gallery installation turned off\n"$reset
-		sleeping
-	elif [ "$galleryinstall" = "false" ]; then
-		galleryinstall='true'
-		gallerystat="$check_ok"
-		printf $green"gallery installation turned on\n"$reset
-		sleeping
-	fi
-
-  elif [ "$key5" = "7" ]; then
-	if [ "$impinstall" = "true" ]; then
-		impinstall='false'
-		impstat="$check_ok"
-		printf $red"impersonate installation turned off\n"$reset
-		sleeping
-	elif [ "$impinstall" = "false" ]; then
-		impinstall='true'
-		impstat="$check_ok"
-		printf $green"impersonate installation turned on\n"$reset
-		sleeping
-	fi
-
-	elif [ "$key5" = "s" ]; then
-	stty echo
-        if [ -z "$contactsinstall" ]; then
-        	printf $redbg"One or more variables are undefined. Aborting..."$reset
-        	sleep 3
-        	continue
-        else
-		echo "-----------------------------"
-        break
-        fi
-  elif [ "$key5" = "q" ]; then
-	abort
-  fi
-done
-}
-###############
-##  NC APPS  ##
-###############
-
-# Contacs
-contacs=$(curl -s https://api.github.com/repos/nextcloud/contacts/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
-contacs_file=contacts.tar.gz
-contacs_repo=https://github.com/nextcloud/contacts/releases/download
-# Calendar
-calendar=$(curl -s https://api.github.com/repos/nextcloud/calendar/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
-calendar_file=calendar.tar.gz
-calendar_repo=https://github.com/nextcloud/calendar/releases/download
-# Mail
-mail=$(curl -s https://api.github.com/repos/nextcloud/mail/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
-mail_file=mail.tar.gz
-mail_repo=https://github.com/nextcloud/mail/releases/download
-# Tasks
-tasks=$(curl -s https://api.github.com/repos/nextcloud/tasks/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
-tasks_file=tasks.tar.gz
-tasks_repo=https://github.com/nextcloud/tasks/releases/download
-# Gallery
-gallery=$(curl -s https://api.github.com/repos/nextcloud/gallery/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
-gallery_file=gallery.tar.gz
-gallery_repo=https://github.com/nextcloud/gallery/releases/download
-# Notes
-notes=$(curl -s https://api.github.com/repos/nextcloud/notes/releases/latest | grep "tag_name" | cut -d\" -f4 | sed -e "s|v||g")
-notes_file=notes.tar.gz
-notes_repo=https://github.com/nextcloud/notes/releases/download
-# impersonate
-impersonate_file=v1.0.1.tar.gz
-impersonate_folder="./impersonate-1.0.1"
-impersonate_new="impersonate"
-impersonate_repo=https://github.com/nextcloud/impersonate/archive/
 #################################
 ######   INITIALIZATION    ######
 #################################
@@ -1218,27 +561,26 @@ else
 	clear
 	while true; do
 	printhead
-	echo ""
+echo ""
+echo "--------------------------------------------------------------------------"
+echo "                    Setup			Page 1/3"
+echo "------+------------+-----------------+------------------------------------"
+echo "  Nr. |   Status   |     description |    value"
+echo "------+------------+-----------------+------------------------------------"
+###########    |xx-----------xxx|xxxxxxxxxXXXXXX:x|x"$var
+printf "  1   |  $domainstat   |         Domain: | "$url1"\n"
+printf "  2   |  $namestat   |           name: | "$ncname"\n"
+printf "  3   |  $htmlstat   |      directory: | "$html"\n"
+printf "  4   |  $folderstat   |         folder: | "$folder"\n"
+echo ""
+printf "  5   |  $dbtypestat   |        DB-Type: | "$dbtype"\n"
+printf "  6   |  $dbhoststat   |        DB-Host: | "$dbhost"\n"
+echo "------+------------+-----------------+------------------------------------"
+printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+printf "${red}[q]${reset} Quit\n"
+echo -n "Enter [1-6], [s] or [q]: ";key1=$(readOne)
 
-  echo "--------------------------------------------------------------------------"
-  echo "                    Setup			Page 1/3"
-  echo "------+------------+-----------------+------------------------------------"
-  echo "  Nr. |   Status   |     description |    value"
-  echo "------+------------+-----------------+------------------------------------"
-  ###########    |xx-----------xxx|xxxxxxxxxXXXXXX:x|x"$var
-  printf "  1   |  $domainstat   |         Domain: | "$url1"\n"
-  printf "  2   |  $namestat   |           name: | "$ncname"\n"
-  printf "  3   |  $htmlstat   |      directory: | "$html"\n"
-  printf "  4   |  $folderstat   |         folder: | "$folder"\n"
-  echo ""
-  printf "  5   |  $dbtypestat   |        DB-Type: | "$dbtype"\n"
-  printf "  6   |  $dbhoststat   |        DB-Host: | "$dbhost"\n"
-  echo "------+------------+-----------------+------------------------------------"
-  printf "Type [1-6] to change value or ${cyan}[s]${reset} to save and go to next page\n"
-  printf "${red}[q]${reset} Quit\n"
-  echo -n "Enter [1-6], [s] or [q]: ";key1=$(readOne)
-
-  if [ "$key1" = "1" ]; then
+if [ "$key1" = "1" ]; then
 	echo ""
 	stty echo
   	echo -n "Enter url (with http:// or https://): "
@@ -1250,10 +592,7 @@ else
 		if [[ $url1 =~ $regexhttps ]]; then
 			printf $redbg"Make sure you have a valid SSL-Certificate or Nextcloud won't work as expected\n"$reset
 			sleep 4
-			read -n1 -r -p " Press any key to continue... " key
-			if [ "$key" = '' ]; then
-				return
-			fi
+			anykey
 		fi
 	else
 		printf $redbg"Wrong input format. Enter a valid URL..."$reset
@@ -1262,14 +601,14 @@ else
 		continue
 	fi
 
-  elif [ "$key1" = "2" ]; then
+elif [ "$key1" = "2" ]; then
 	echo ""
-  stty echo
+	stty echo
 	echo -n "Enter name: "
 	read ncname
 	[  -z "$ncname" ] && namestat="$check_miss" || namestat="$check_ok"
 
-  elif [ "$key1" = "3" ]; then
+elif [ "$key1" = "3" ]; then
 	echo ""
 	stty echo
 	echo -n "Enter html-directory (e.g. /var/www/html): "
@@ -1277,33 +616,33 @@ else
 
 	# Check for correct input
 	while ! [[ -d $html ]]; do
-	printf $redbg"Wrong input format or choosen directory does not exist... Enter html-directory: "$reset
-	read html
-    done
+		printf $redbg"Wrong input format or choosen directory does not exist... Enter html-directory: "$reset
+		read html
+	done
 	[ -z "$html" ] && htmlstat="$check_miss" || htmlstat="$check_ok"
 
-  elif [ "$key1" = "4" ]; then
+elif [ "$key1" = "4" ]; then
 	echo ""
 	stty echo
 	echo -n "Enter folder name (Leave empty, if you want to install to root directory): "
 	read folder
 	[ "$folder" ] && folderstat="$check_ok"
 
-  elif [ "$key1" = "5" ]; then
+elif [ "$key1" = "5" ]; then
 	echo ""
 	stty echo
 	echo -n "Enter Database-Type (e.g. mysql, sqlite, etc.): "
 	read dbtype
 	[  -z "$dbtype" ] && dbtypestat="$check_miss" || dbtypestat="$check_ok"
 
-  elif [ "$key1" = "6" ]; then
+elif [ "$key1" = "6" ]; then
 	echo ""
 	stty echo
 	echo -n "Enter Database-Host (e.g. localhost): "
 	read dbhost
 	[ -z "$dbhost" ] && dbhoststat="$check_miss" || dbhoststat="$check_ok"
 
-  elif [ "$key1" = "s" ]; then
+elif [ "$key1" = "s" ]; then
 	stty echo
 		if [ -z "$url1" ] || [ -z "$ncname" ] || [ -z "$html" ] || [ -z "$dbtype" ] || [ -z "$dbhost" ]; then
 			printf $redbg"One or more variables are undefined. Aborting..."$reset
@@ -1312,11 +651,11 @@ else
 		else
 			echo ""
 			echo "-----------------------------"
-  break
-  fi
-  elif [ "$key1" = "q" ]; then
+	break
+	fi
+elif [ "$key1" = "q" ]; then
 	abort
-  fi
+fi
 done
 fi
 stty -echo
@@ -1349,7 +688,7 @@ stty echo
 
 ######### Warning Apache & MySQL
 {
-	type mysql >/dev/null 2>&1
+type mysql >/dev/null 2>&1
 } &> /dev/null
 if [ $? -eq 0 ]; then
 	printf $green"MySQL installation found! Installing continues...\n"$reset
@@ -1362,7 +701,7 @@ else
 fi
 
 {
-        ps -A | grep 'apache\|httpd\|nginx'
+ps -A | grep 'apache\|httpd\|nginx'
 } &> /dev/null
 if [ $? -eq 0 ]; then
 	printf $green"Apache/nginx installation found! Installing continues...\n"$reset
@@ -1374,7 +713,7 @@ else
 	sleeping3
 	abort
 fi
-
+iconstat="$check_ok"
 #########
 
 ###################################
@@ -1382,32 +721,32 @@ fi
 ###################################
 if [[ "$isconfig" = "true" ]]; then
 	echo "Skipping Page 2"
-	else
+else
 	clear
 	while true; do
 	printhead
 	echo ""
 	stty echo
-  echo "--------------------------------------------------------------------------"
-  echo "                    Setup			Page 2/3"
-  echo "------+------------+------------------+------------------------------------"
-  echo "  Nr. |   Status   |      description |    value"
-  echo "------+------------+------------------+------------------------------------"
-  printf "  1   |  $emailstat   |          E-Mail: | "$email"\n"
-  printf "  2   |  $adusrstat   |  Admin Username: | "$adminuser"\n"
-  echo ""
-   printf "  3   |  $dbusrstat   |     DB Username: | "$dbruser"\n"
-  echo -e "  4   |  $dbrootstat   |Database Root-PW: | "$database_root
-  echo ""
-  printf "  5   |  $htusrstat   |        WWW User: | "$htuser"\n"
-  printf "  6   |  $htgrpstat   |       WWW Group: | "$htgroup"\n"
-  printf "  7   |  $rootusrstat   |       root user: | "$rootuser"\n"
-  printf "  8   |  $cronstat   |         cronjob: | "$cron"\n"
-  printf "  9   |  $iconstat   |         favicon: | "$icon"\n"
-  echo "------+------------+------------------+------------------------------------"
-  printf "Type [1-9] to change value or ${cyan}[s]${reset} to save and go to next page\n"
-  printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-9], [s] or [q]: ";key3=$(readOne)
+echo "--------------------------------------------------------------------------"
+echo "                    Setup			Page 2/3"
+echo "------+------------+------------------+------------------------------------"
+echo "  Nr. |   Status   |      description |    value"
+echo "------+------------+------------------+------------------------------------"
+printf "  1   |  $emailstat   |          E-Mail: | "$email"\n"
+printf "  2   |  $adusrstat   |  Admin Username: | "$adminuser"\n"
+echo ""
+printf "  3   |  $dbusrstat   |     DB Username: | "$dbruser"\n"
+echo -e "  4   |  $dbrootstat   |Database Root-PW: | "$database_root
+echo ""
+printf "  5   |  $htusrstat   |        WWW User: | "$htuser"\n"
+printf "  6   |  $htgrpstat   |       WWW Group: | "$htgroup"\n"
+printf "  7   |  $rootusrstat   |       root user: | "$rootuser"\n"
+printf "  8   |  $cronstat   |         cronjob: | "$cron"\n"
+printf "  9   |  $iconstat   |         favicon: | "$icon"\n"
+echo "------+------------+------------------+------------------------------------"
+printf "Type [1-9] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+printf "${red}[q]${reset} Quit\n"
+echo -en "Enter [1-9], [s] or [q]: ";key3=$(readOne)
 
   if [ "$key3" = "1" ]; then
 	echo ""
@@ -1436,10 +775,7 @@ if [[ "$isconfig" = "true" ]]; then
 	if [[ "$adminuser" = "root" ]] || [[ "$adminuser" = "admin" ]]; then
 		[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
 		printf $redbg"Please don't use this username for security reasons. You should choose a unique username :) \n"$reset
-		read -n1 -r -p " Press any key to continue... " key
-		if [ "$key" = '' ]; then
-			return
-		fi
+		anykey
 	else
 		[  -z "$adminuser" ] && adusrstat="$check_miss" || adusrstat="$check_ok"
 	fi
@@ -1457,15 +793,6 @@ if [[ "$isconfig" = "true" ]]; then
 	stty echo
 	echo -n "Please enter password for database root account (won't be stored): "
 	read database_root
-
-	# function check MySQL Login
-	function mysqlcheck () {
-	if [[ "dbhost" = "localhost" ]]; then
-		mysql -u $dbruser -p$database_root  -e ";"
-	else
-		mysql -u $dbruser -p$database_root -h $dbhost -e ";"
-	fi
-	} &> /dev/null
 
 	while ! mysqlcheck ; do
 		printf $redbg"Wrong password! Please enter the MySQL root password!: "$reset
@@ -1567,27 +894,27 @@ else
 	printhead
 	echo ""
 	stty echo
-  echo "--------------------------------------------------------------------------"
-  echo "                    Setup			Page 3/3"
-  echo "------+------------+-------------------------------+-----------------------"
-  echo "  Nr. |   Status   |                   description |    value"
-  echo "------+------------+-------------------------------+-----------------------"
-  printf "  1   |  $dpnamestat   | allow change of display name: | "$displayname"\n"
-  printf "  2   |  $rlchanstat   |              Release Channel: | "$rlchannel"\n"
-  printf "  3   |  $memstat   |                     Memcache: | "$memcache"\n"
-  printf "  4   |  $maintstat   |             maintenance mode: | "$maintenance"\n"
-  printf "  5   |  $singlestat   |              singleuser mode: | "$singleuser"\n"
-  printf "  6   |  $skeletonstat   |    custom skeleton directory: | "$skeleton"\n"
-  printf "  7   |  $skeletonstat   |             default language: | "$default_language"\n"
-  printf "  8   |  $skeletonstat   |               enable avatars: | "$enable_avatars"\n"
-  printf "  9   |  $skeletonstat   |                  pretty URLs: | "$rewritebase"\n"
-  echo "------+------------+-------------------------------+---------------------------------"
-  printf "Type [1-9] to change value or ${cyan}[s]${reset} to save and go to next page\n"
-  printf "${red}[q]${reset} Quit\n"
-  echo -en "Enter [1-9], [s] or [q]: ";key4=$(readOne)
+echo "--------------------------------------------------------------------------"
+echo "                    Setup			Page 3/3"
+echo "------+------------+-------------------------------+-----------------------"
+echo "  Nr. |   Status   |                   description |    value"
+echo "------+------------+-------------------------------+-----------------------"
+printf "  1   |  $dpnamestat   | allow change of display name: | "$displayname"\n"
+printf "  2   |  $rlchanstat   |              Release Channel: | "$rlchannel"\n"
+printf "  3   |  $memstat   |                     Memcache: | "$memcache"\n"
+printf "  4   |  $maintstat   |             maintenance mode: | "$maintenance"\n"
+printf "  5   |  $singlestat   |              singleuser mode: | "$singleuser"\n"
+printf "  6   |  $skeletonstat   |    custom skeleton directory: | "$skeleton"\n"
+printf "  7   |  $skeletonstat   |             default language: | "$default_language"\n"
+printf "  8   |  $skeletonstat   |               enable avatars: | "$enable_avatars"\n"
+printf "  9   |  $skeletonstat   |                  pretty URLs: | "$rewritebase"\n"
+echo "------+------------+-------------------------------+---------------------------------"
+printf "Type [1-9] to change value or ${cyan}[s]${reset} to save and go to next page\n"
+printf "${red}[q]${reset} Quit\n"
+echo -en "Enter [1-9], [s] or [q]: ";key4=$(readOne)
 
-  if [ "$key4" = "1" ]; then
-  if [ "$displayname" = "true" ]; then
+if [ "$key4" = "1" ]; then
+	if [ "$displayname" = "true" ]; then
 		displayname='false'
 		dpnamestat="$check_ok"
 		printf $red"allow change of display name set to false\n"$reset
@@ -1599,7 +926,7 @@ else
 		sleeping
 	fi
 
-  elif [ "$key4" = "2" ]; then
+elif [ "$key4" = "2" ]; then
 	echo ""
 	stty echo
 	echo -n "The channel that Nextcloud should use to look for updates (daily, beta, stable, production) "
@@ -1617,7 +944,7 @@ else
 	fi
 	shopt -u nocasematch
 
-  elif [ "$key4" = "3" ]; then
+elif [ "$key4" = "3" ]; then
 	echo ""
 	stty echo
 	echo -n "Do you want to use memcache? (none, APCu): "
@@ -1635,8 +962,8 @@ else
 	fi
 	shopt -u nocasematch
 
-  elif [ "$key4" = "4" ]; then
-  if [ "$maintenance" = "true" ]; then
+elif [ "$key4" = "4" ]; then
+	if [ "$maintenance" = "true" ]; then
 		maintenance='false'
 		maintstat="$check_ok"
 		printf $red"maintenance mode set to false\n"$reset
@@ -1648,7 +975,7 @@ else
 		sleeping
 	fi
 
-  elif [ "$key4" = "5" ]; then
+elif [ "$key4" = "5" ]; then
 	if [ "$singleuser" = "true" ]; then
 		singleuser='false'
 		singlestat="$check_ok"
@@ -1661,7 +988,7 @@ else
 		sleeping
 	fi
 
-  elif [ "$key4" = "6" ]; then
+elif [ "$key4" = "6" ]; then
 	echo ""
 	stty echo
 	echo -n "Enter custom skeleton directory or type none for default: "
@@ -1684,14 +1011,14 @@ else
 		fi
 	fi
 
-  elif [ "$key4" = "7" ]; then
+elif [ "$key4" = "7" ]; then
 	echo ""
 	stty echo
 	echo -n "Enter default language (e.g. de, en, fr, etc..): "
 	read default_language
 	[  -z "$default_language" ] && langstat="$check_miss" || langstat="$check_ok"
 
-  elif [ "$key4" = "8" ]; then
+elif [ "$key4" = "8" ]; then
 	if [ "$enable_avatars" = "true" ]; then
 		enable_avatars='false'
 		enavastat="$check_ok"
@@ -1704,7 +1031,7 @@ else
 		sleeping
 	fi
 
-  elif [ "$key4" = "9" ]; then
+elif [ "$key4" = "9" ]; then
 	if [ "$rewritebase" = "true" ]; then
 		rewritebase='false'
 		rewritestat="$check_ok"
@@ -1717,7 +1044,7 @@ else
 		sleeping
 	fi
 
-  elif [ "$key4" = "s" ]; then
+elif [ "$key4" = "s" ]; then
 	echo ""
 	stty echo
 	if [ -z "$rlchannel" ] || [ -z "$memcache" ]; then
@@ -1728,10 +1055,10 @@ else
 		echo ""
         	echo "-----------------------------"
 	break
-  fi
-  elif [ "$key4" = "q" ]; then
+	fi
+elif [ "$key4" = "q" ]; then
 	abort
-  fi
+fi
 done
 fi
 #################################
@@ -1917,14 +1244,7 @@ if ! [[ $email =~ $regexmail ]]; then
 	printf $redbg"Wrong E-Mail format. Aborting...\n"$reset
 	abort
 fi
-# function check MySQL Login
-function mysqlcheck () {
-if [[ "dbhost" = "localhost" ]]; then
-	mysql -u $dbruser -p$database_root  -e ";"
-else
-	mysql -u $dbruser -p$database_root -h $dbhost -e ";"
-fi
-} &> /dev/null
+
 if ! mysqlcheck ; then
 	echo ""
 	printf $redbg"Database Connection couldn't be established... Aborting\n"$reset
@@ -2011,16 +1331,6 @@ printf $yellow"Let's do some magic... Generating usernames and passwords..\n"$re
 echo ""
 
 # Generate random Database-username
-function vowel() {
-s=aeoiu
-p=$(( $RANDOM % 5))
-    echo -n ${s:$p:1}
-}
-function consonant() {
-s=bcdfghjklmnpqrstBCDFGHJKLMNPQRST
-p=$(( $RANDOM % 32))
-    echo -n ${s:$p:1}
-}
 dbuser1=`consonant; vowel; consonant; vowel; consonant; vowel; consonant`
 dbuser2=${ncname}_${dbuser1}
 
@@ -2333,9 +1643,15 @@ while true; do progress; done &
 
 	# remove config.sample.php
 	rm -f $ncpath/config/config.sample.php
-echo ""
-sleeping2
-	} &> /dev/null
+
+	# Configure Upload and Filesize
+	sed -i 's/  php_value upload_max_filesize.*/# php_value upload_max_filesize 511M/g' "$ncpath"/.htaccess
+	sed -i 's/  php_value post_max_size.*/# php_value post_max_size 511M/g' "$ncpath"/.htaccess
+	sed -i 's/  php_value memory_limit.*/# php_value memory_limit 512M/g' "$ncpath"/.htaccess
+
+	echo ""
+	sleeping2
+} &> /dev/null
 
 kill $!; trap 'kill $!' SIGTERM
 
