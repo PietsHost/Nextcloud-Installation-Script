@@ -17,6 +17,7 @@ admin-Username and much more!
 
 Database-Name, Database-password and Admin-password will be generated automatically - due to security reasons.
 You can also specify everything whitin the "default.json"-file. Simply load the JSON-File with "-c" or "--config" parameter!
+If you don't want to use the JSON-File, you can also edit the variables.sh file.
 
 Now let the script do it's work.
 
