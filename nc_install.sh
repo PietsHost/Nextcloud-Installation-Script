@@ -4,7 +4,7 @@
 #
 # Tested on:
 # CentOS 6.8 & 7.4,
-# Ubuntu 12.04, 14.04, 16.04,
+# Ubuntu 12.04, 14.04, 16.04, 18.04,
 # Debian 7 & 8,
 # Fedora 23, 24 & 25,
 #
@@ -294,7 +294,7 @@ echo ""
 sleeping
 
 if [[ "$os" = "CentOs" && ("$ver" = "6" || "$ver" = "7" ) ||
-      "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ||
+      "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04" || "$ver" = "18.04"  ) ||
       "$os" = "debian" && ("$ver" = "7" || "$ver" = "8" ) ||
 	"$os" = "fedora" && ("$ver" = "23" || "$ver" = "24" || "$ver" = "25") ]]; then
 	printf $green"Very Good! Your OS is compatible.\n"$reset
@@ -307,7 +307,7 @@ else
 fi
 sleeping
 
-if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
+if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04" || "$ver" = "18.04"  ) ]]; then
 	if [[ "$overwrite" = "true" ]]; then
 		#Check for Plesk installation
 		echo "checking additional control panels..."
@@ -386,7 +386,7 @@ if [[ "$depend" = "false" ]]; then
 else
 	printf $yellow"Installing dependencies...(may take some time)\n"$reset
 {
-if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04"  ) ]]; then
+if [[ "$os" = "Ubuntu" && ("$ver" = "12.04" || "$ver" = "14.04" || "$ver" = "16.04" || "$ver" = "18.04"  ) ]]; then
 	dpkg -l | grep -qw pv || apt-get install pv -y
 	dpkg -l | grep -qw bzip2 || apt-get install bzip2 -y
 	dpkg -l | grep -qw rsync || apt-get install rsync -y
